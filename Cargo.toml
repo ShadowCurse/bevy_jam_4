@@ -24,3 +24,4 @@ dylib = ["bevy/dynamic_linking"]
 
 [dependencies]
 bevy = { version = "0.12" }
+bevy_rapier3d = { version = "0.23.0", features = ["simd-stable", "debug-render", "parallel"] }
