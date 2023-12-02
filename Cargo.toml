@@ -12,6 +12,12 @@ opt-level = 1
 [profile.dev.package."*"]
 opt-level = 3
 
+# Optimize release builds for size, use LTO
+[profile.release]
+opt-level = "z"
+lto = "thin"
+strip = "debuginfo"
+
 [features]
 default = []
 dylib = ["bevy/dynamic_linking"]
