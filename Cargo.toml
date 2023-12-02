@@ -12,5 +12,9 @@ opt-level = 1
 [profile.dev.package."*"]
 opt-level = 3
 
+[features]
+default = []
+dylib = ["bevy/dynamic_linking"]
+
 [dependencies]
-bevy = { version = "0.12", features = ["dynamic_linking"] }
+bevy = { version = "0.12" }
