@@ -16,6 +16,7 @@ jobs:
 
   # Build for wasm
   release-wasm:
+    permissions: write-all
     runs-on: ubuntu-latest
 
     steps:
@@ -62,6 +63,7 @@ jobs:
 
   # Build for Linux
   release-linux:
+    permissions: write-all
     runs-on: ubuntu-latest
 
     steps:
@@ -109,6 +111,7 @@ jobs:
 
   # Build for Windows
   release-windows:
+    permissions: write-all
     runs-on: windows-latest
 
     steps:
@@ -152,6 +155,7 @@ jobs:
 
   # Build for MacOS x86_64
   release-macOS-intel:
+    permissions: write-all
     runs-on: macOS-latest
 
     steps:
@@ -196,6 +200,7 @@ jobs:
 
   # Build for MacOS Apple Silicon
   release-macOS-apple-silicon:
+    permissions: write-all
     runs-on: macOS-latest
 
     steps:
