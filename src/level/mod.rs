@@ -11,7 +11,7 @@ impl Plugin for LevelPlugin {
 }
 
 #[derive(Component)]
-struct LevelObject;
+pub struct LevelObject;
 
 #[derive(Resource)]
 struct LevelResources {
@@ -44,6 +44,7 @@ fn generate_level(
             ..default()
         },
         Collider::cuboid(dimentions.x / 2.0, dimentions.y / 2.0, dimentions.z / 2.0),
+        RigidBody::Fixed,
         LevelObject,
     ));
 
@@ -59,6 +60,7 @@ fn generate_level(
             ..default()
         },
         Collider::cuboid(dimentions.x / 2.0, dimentions.y / 2.0, dimentions.z / 2.0),
+        RigidBody::Fixed,
         LevelObject,
     ));
 
@@ -72,6 +74,7 @@ fn generate_level(
             ..default()
         },
         Collider::cuboid(dimentions.x / 2.0, dimentions.y / 2.0, dimentions.z / 2.0),
+        RigidBody::Fixed,
         LevelObject,
     ));
 
@@ -87,6 +90,7 @@ fn generate_level(
             ..default()
         },
         Collider::cuboid(dimentions.x / 2.0, dimentions.y / 2.0, dimentions.z / 2.0),
+        RigidBody::Fixed,
         LevelObject,
     ));
 
@@ -100,6 +104,7 @@ fn generate_level(
             ..default()
         },
         Collider::cuboid(dimentions.x / 2.0, dimentions.y / 2.0, dimentions.z / 2.0),
+        RigidBody::Fixed,
         LevelObject,
     ));
 }
