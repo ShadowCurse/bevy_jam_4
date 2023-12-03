@@ -35,7 +35,7 @@ fn generate_level(
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
     // floor
-    let dimentions = Vec3::new(100.0, 100.0, 1.0);
+    let dimentions = Vec3::new(500.0, 500.0, 1.0);
     let mesh = meshes.add(shape::Box::new(dimentions.x, dimentions.y, dimentions.z).into());
     commands.spawn((
         PbrBundle {
@@ -49,9 +49,9 @@ fn generate_level(
     ));
 
     // +X wall
-    let dimentions = Vec3::new(1.0, 100.0, 10.0);
+    let dimentions = Vec3::new(1.0, 500.0, 10.0);
     let mesh = meshes.add(shape::Box::new(dimentions.x, dimentions.y, dimentions.z).into());
-    let transform = Transform::from_translation(Vec3::new(50.0, 0.0, 5.0));
+    let transform = Transform::from_translation(Vec3::new(250.0, 0.0, 5.0));
     commands.spawn((
         PbrBundle {
             mesh: mesh.clone(),
@@ -65,7 +65,7 @@ fn generate_level(
     ));
 
     // -X wall
-    let transform = Transform::from_translation(Vec3::new(-50.0, 0.0, 5.0));
+    let transform = Transform::from_translation(Vec3::new(-250.0, 0.0, 5.0));
     commands.spawn((
         PbrBundle {
             mesh,
@@ -79,9 +79,9 @@ fn generate_level(
     ));
 
     // +Y wall
-    let dimentions = Vec3::new(100.0, 1.0, 10.0);
+    let dimentions = Vec3::new(500.0, 1.0, 10.0);
     let mesh = meshes.add(shape::Box::new(dimentions.x, dimentions.y, dimentions.z).into());
-    let transform = Transform::from_translation(Vec3::new(0.0, 50.0, 5.0));
+    let transform = Transform::from_translation(Vec3::new(0.0, 250.0, 5.0));
     commands.spawn((
         PbrBundle {
             mesh: mesh.clone(),
@@ -95,7 +95,7 @@ fn generate_level(
     ));
 
     // -Y wall
-    let transform = Transform::from_translation(Vec3::new(0.0, -50.0, 5.0));
+    let transform = Transform::from_translation(Vec3::new(0.0, -250.0, 5.0));
     commands.spawn((
         PbrBundle {
             mesh,
