@@ -3,6 +3,8 @@ use bevy_rapier3d::prelude::*;
 
 use crate::weapons::{FreeFloatingWeapon, ShootEvent, Weapon};
 
+const PLAYER_WEAPON_DEFAULT_TRANSLATION: Vec3 = Vec3::new(0.0, -0.5, -1.4);
+
 pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
@@ -40,18 +42,25 @@ struct PlayerCamera {
     default_translation: Vec3,
     rotation_speed: f32,
 
-    movement_bounce_continue: bool,
-    movement_bounce_progress: f32,
-    movement_bounce_speed: f32,
+    bounce_continue: bool,
+    bounce_progress: f32,
+    bounce_speed: f32,
 
-    movement_bounce_amplitude: f32,
-    movement_bounce_amplitude_modifier: f32,
-    movement_bounce_amplitude_modifier_speed: f32,
-    movement_bounce_amplitude_modifier_max: f32,
+    bounce_amplitude: f32,
+    bounce_amplitude_modifier: f32,
+    bounce_amplitude_modifier_speed: f32,
+    bounce_amplitude_modifier_max: f32,
 }
 
 #[derive(Component)]
-struct PlayerWeapon;
+struct PlayerWeapon {
+    default_translation: Vec3,
+
+    bounce_continue: bool,
+    bounce_progress: f32,
+    bounce_speed: f32,
+    bounce_amplitude: f32,
+}
 
 fn spawn(mut commands: Commands) {
     commands
@@ -89,14 +98,14 @@ fn spawn(mut commands: Commands) {
                     default_translation: Vec3::new(0.0, 0.0, 2.0),
                     rotation_speed: 5.0,
 
-                    movement_bounce_continue: false,
-                    movement_bounce_progress: 0.0,
-                    movement_bounce_speed: 5.0,
+                    bounce_continue: false,
+                    bounce_progress: 0.0,
+                    bounce_speed: 8.0,
 
-                    movement_bounce_amplitude: 0.2,
-                    movement_bounce_amplitude_modifier: 1.0,
-                    movement_bounce_amplitude_modifier_speed: 1.0,
-                    movement_bounce_amplitude_modifier_max: 2.0,
+                    bounce_amplitude: 0.2,
+                    bounce_amplitude_modifier: 1.0,
+                    bounce_amplitude_modifier_speed: 1.0,
+                    bounce_amplitude_modifier_max: 2.0,
                 },
                 Collider::ball(0.5),
             ));
@@ -125,7 +134,13 @@ fn player_pick_up_weapon(
                 commands
                     .get_entity(weapon)
                     .unwrap()
-                    .insert(PlayerWeapon)
+                    .insert(PlayerWeapon {
+                        default_translation: PLAYER_WEAPON_DEFAULT_TRANSLATION,
+                        bounce_continue: false,
+                        bounce_progress: 0.0,
+                        bounce_speed: 4.0,
+                        bounce_amplitude: 0.08,
+                    })
                     .remove::<(Collider, FreeFloatingWeapon)>();
             }
         }
@@ -218,6 +233,7 @@ fn player_move(
     controller.translation = Some(movement);
 }
 
+// TODO make better
 fn player_camera_update(
     time: Res<Time>,
     player_components: Query<&PlayerVelocity>,
@@ -237,36 +253,65 @@ fn player_camera_update(
 
     transform.translation = camera.default_translation
         + Vec3::NEG_Z
-            * camera.movement_bounce_amplitude
-            * camera.movement_bounce_amplitude_modifier
-            * (camera.movement_bounce_progress).sin();
+            * camera.bounce_amplitude
+            * camera.bounce_amplitude_modifier
+            * (camera.bounce_progress).sin();
 
     if velocity.was_input {
         // if there was input, continue bouncing
-        camera.movement_bounce_continue = true;
-        camera.movement_bounce_progress += camera.movement_bounce_speed * time.delta_seconds();
-        camera.movement_bounce_amplitude_modifier = (camera.movement_bounce_amplitude_modifier
-            + camera.movement_bounce_amplitude_modifier_speed * time.delta_seconds())
-        .min(camera.movement_bounce_amplitude_modifier_max);
-    } else if camera.movement_bounce_continue {
+        camera.bounce_continue = true;
+        camera.bounce_progress += camera.bounce_speed * time.delta_seconds();
+        camera.bounce_amplitude_modifier = (camera.bounce_amplitude_modifier
+            + camera.bounce_amplitude_modifier_speed * time.delta_seconds())
+        .min(camera.bounce_amplitude_modifier_max);
+    } else if camera.bounce_continue {
         // if there was no input, continue until next PI
-        camera.movement_bounce_progress += camera.movement_bounce_speed * time.delta_seconds();
-        let next_pi =
-            (camera.movement_bounce_progress / std::f32::consts::PI).ceil() * std::f32::consts::PI;
-        if next_pi <= camera.movement_bounce_progress + 0.1 {
-            camera.movement_bounce_progress = 0.0;
-            camera.movement_bounce_continue = false;
-            camera.movement_bounce_amplitude_modifier = 1.0;
+        camera.bounce_progress += camera.bounce_speed * time.delta_seconds();
+        let next_pi = (camera.bounce_progress / std::f32::consts::PI).ceil() * std::f32::consts::PI;
+        if next_pi <= camera.bounce_progress + 0.1 {
+            camera.bounce_progress = 0.0;
+            camera.bounce_continue = false;
+            camera.bounce_amplitude_modifier = 1.0;
         }
     }
 }
 
-fn player_weapon_update(mut weapon: Query<&mut Transform, With<PlayerWeapon>>) {
-    let Ok(mut weapon_transform) = weapon.get_single_mut() else {
+// TODO make better
+fn player_weapon_update(
+    time: Res<Time>,
+    player_velocity: Query<&PlayerVelocity>,
+    mut weapon: Query<(&mut Transform, &mut PlayerWeapon)>,
+) {
+    let Ok(velocity) = player_velocity.get_single() else {
         return;
     };
-    // left hand coordinates?
-    // x -> right y -> up z -> forward
+
+    let Ok((mut weapon_transform, mut player_weapon)) = weapon.get_single_mut() else {
+        return;
+    };
     weapon_transform.rotation = Quat::IDENTITY;
-    weapon_transform.translation = Vec3::new(0.0, -0.5, -1.4);
+
+    let bounce = player_weapon.bounce_progress.sin();
+    let offset = Vec3::new(
+        player_weapon.bounce_amplitude * bounce,
+        (player_weapon.bounce_amplitude * bounce).abs(),
+        0.0,
+    );
+
+    weapon_transform.translation = player_weapon.default_translation + offset;
+
+    if velocity.was_input {
+        // if there was input, continue bouncing
+        player_weapon.bounce_continue = true;
+        player_weapon.bounce_progress += player_weapon.bounce_speed * time.delta_seconds();
+    } else if player_weapon.bounce_continue {
+        // if there was no input, continue until next PI
+        player_weapon.bounce_progress += player_weapon.bounce_speed * time.delta_seconds();
+        let next_pi =
+            (player_weapon.bounce_progress / std::f32::consts::PI).ceil() * std::f32::consts::PI;
+        if next_pi <= player_weapon.bounce_progress + 0.1 {
+            player_weapon.bounce_progress = 0.0;
+            player_weapon.bounce_continue = false;
+        }
+    }
 }
