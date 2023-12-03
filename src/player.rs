@@ -1,12 +1,22 @@
 use bevy::{input::mouse::MouseMotion, prelude::*};
 use bevy_rapier3d::prelude::*;
 
+use crate::weapons::{Pistol, ShootEvent, WeaponAttackTimer};
+
 pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, spawn);
-        app.add_systems(Update, (player_update, player_move, player_camera_update));
+        app.add_systems(
+            Update,
+            (
+                player_shoot,
+                player_update,
+                player_move,
+                player_camera_update,
+            ),
+        );
     }
 }
 
@@ -38,6 +48,9 @@ struct PlayerCamera {
     movement_bounce_amplitude_modifier_max: f32,
 }
 
+#[derive(Component)]
+struct PlayerWeapon;
+
 fn spawn(mut commands: Commands) {
     commands
         .spawn((
@@ -60,27 +73,64 @@ fn spawn(mut commands: Commands) {
             },
         ))
         .with_children(|builder| {
-            builder.spawn((
-                Camera3dBundle {
-                    transform: Transform::from_xyz(0.0, 0.0, 2.0)
-                        .looking_at(Vec3::new(1.0, 0.0, 2.0), Vec3::Z),
-                    ..default()
-                },
-                PlayerCamera {
-                    default_translation: Vec3::new(0.0, 0.0, 2.0),
-                    rotation_speed: 5.0,
+            builder
+                .spawn((
+                    Camera3dBundle {
+                        transform: Transform::from_xyz(0.0, 0.0, 2.0)
+                            .looking_at(Vec3::new(1.0, 0.0, 2.0), Vec3::Z),
+                        ..default()
+                    },
+                    PlayerCamera {
+                        default_translation: Vec3::new(0.0, 0.0, 2.0),
+                        rotation_speed: 5.0,
 
-                    movement_bounce_continue: false,
-                    movement_bounce_progress: 0.0,
-                    movement_bounce_speed: 5.0,
+                        movement_bounce_continue: false,
+                        movement_bounce_progress: 0.0,
+                        movement_bounce_speed: 5.0,
 
-                    movement_bounce_amplitude: 0.2,
-                    movement_bounce_amplitude_modifier: 1.0,
-                    movement_bounce_amplitude_modifier_speed: 1.0,
-                    movement_bounce_amplitude_modifier_max: 2.0,
-                },
-            ));
+                        movement_bounce_amplitude: 0.2,
+                        movement_bounce_amplitude_modifier: 1.0,
+                        movement_bounce_amplitude_modifier_speed: 1.0,
+                        movement_bounce_amplitude_modifier_max: 2.0,
+                    },
+                ))
+                .with_children(|builder| {
+                    builder.spawn((
+                        TransformBundle::default(),
+                        Pistol { ammo: 10 },
+                        WeaponAttackTimer {
+                            attack_timer: Timer::new(
+                                std::time::Duration::from_secs(1),
+                                TimerMode::Repeating,
+                            ),
+                        },
+                        PlayerWeapon,
+                    ));
+                });
         });
+}
+
+fn player_shoot(
+    keys: Res<Input<KeyCode>>,
+    player_weapon_components: Query<
+        (Entity, &GlobalTransform, &WeaponAttackTimer),
+        With<PlayerWeapon>,
+    >,
+    mut shoot_event: EventWriter<ShootEvent>,
+) {
+    let Ok((weapon_entity, weapon_global_transform, weapon_attack_timer)) =
+        player_weapon_components.get_single()
+    else {
+        return;
+    };
+
+    if keys.pressed(KeyCode::Space) && weapon_attack_timer.attack_timer.finished() {
+        shoot_event.send(ShootEvent {
+            weapon_entity,
+            weapon_translation: weapon_global_transform.translation(),
+            direction: weapon_global_transform.forward(),
+        });
+    }
 }
 
 fn player_update(

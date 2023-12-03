@@ -3,6 +3,7 @@ use bevy_rapier3d::prelude::*;
 
 mod level;
 mod player;
+mod weapons;
 
 fn main() {
     let mut app = App::new();
@@ -13,11 +14,17 @@ fn main() {
         RapierDebugRenderPlugin::default(),
         level::LevelPlugin,
         player::PlayerPlugin,
+        weapons::WeaponsPlugin,
     ));
 
     app.insert_resource(AmbientLight {
         color: Color::WHITE,
         brightness: 0.2,
+    });
+
+    app.insert_resource(RapierConfiguration {
+        gravity: Vec3::NEG_Z,
+        ..default()
     });
 
     app.add_systems(Startup, setup);
