@@ -1,7 +1,7 @@
 use bevy::{input::mouse::MouseMotion, prelude::*};
 use bevy_rapier3d::prelude::*;
 
-use crate::weapons::{pistol::Pistol, ShootEvent, WeaponAttackTimer};
+use crate::weapons::{pistol::Pistol, ShootEvent, Weapon};
 
 pub struct PlayerPlugin;
 
@@ -98,10 +98,7 @@ fn spawn(mut commands: Commands) {
 
 fn player_shoot(
     keys: Res<Input<KeyCode>>,
-    player_weapon_components: Query<
-        (Entity, &GlobalTransform, &WeaponAttackTimer),
-        With<PlayerWeapon>,
-    >,
+    player_weapon_components: Query<(Entity, &GlobalTransform, &Weapon), With<PlayerWeapon>>,
     mut shoot_event: EventWriter<ShootEvent>,
 ) {
     let Ok((weapon_entity, weapon_global_transform, weapon_attack_timer)) =

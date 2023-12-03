@@ -29,18 +29,18 @@ impl Plugin for WeaponsPlugin {
 }
 
 #[derive(Resource)]
-struct WeaponsResources {
+pub struct WeaponsResources {
     pistol_mesh: Handle<Mesh>,
     pistol_material: Handle<StandardMaterial>,
 }
 
 #[derive(Component)]
-struct ProjectileDirection {
+pub struct ProjectileDirection {
     direction: Vec3,
 }
 
 #[derive(Component)]
-struct Projectile {
+pub struct Projectile {
     damage: u32,
 }
 
@@ -52,7 +52,7 @@ pub struct ShootEvent {
 }
 
 #[derive(Component)]
-pub struct WeaponAttackTimer {
+pub struct Weapon {
     pub attack_timer: Timer,
 }
 
@@ -61,7 +61,7 @@ pub struct FreeFloatingWeapon {
     pub original_translation: Vec3,
 }
 
-impl WeaponAttackTimer {
+impl Weapon {
     pub fn new(seconds: f32) -> Self {
         Self {
             attack_timer: Timer::new(
@@ -86,7 +86,7 @@ fn init_resources(
     });
 }
 
-fn update_attack_timers(time: Res<Time>, mut timers: Query<&mut WeaponAttackTimer>) {
+fn update_attack_timers(time: Res<Time>, mut timers: Query<&mut Weapon>) {
     for mut timer in timers.iter_mut() {
         timer.attack_timer.tick(time.delta());
     }

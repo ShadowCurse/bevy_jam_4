@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 
-use super::{FreeFloatingWeapon, Projectile, ShootEvent, WeaponAttackTimer, WeaponsResources};
+use super::{FreeFloatingWeapon, Projectile, ShootEvent, Weapon, WeaponsResources};
 
 const PISTOL_PROJECTILE_VELOCITY: f32 = 10.0;
 const PISTOL_PROJECTILE_OFFSET_SCALE: f32 = 2.0;
@@ -30,7 +30,7 @@ pub struct PistolBundle {
     collider: Collider,
     rigid_body: RigidBody,
     pistol: Pistol,
-    weapon_attack_timer: WeaponAttackTimer,
+    weapon: Weapon,
 }
 
 impl PistolBundle {
@@ -45,7 +45,7 @@ impl PistolBundle {
             collider: Collider::ball(0.6),
             rigid_body: RigidBody::Fixed,
             pistol: Pistol { ammo: PISTOL_AMMO },
-            weapon_attack_timer: WeaponAttackTimer::new(PISTOL_ATTACK_SPEED),
+            weapon: Weapon::new(PISTOL_ATTACK_SPEED),
         }
     }
 }
