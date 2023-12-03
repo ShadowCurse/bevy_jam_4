@@ -28,7 +28,6 @@ pub struct Pistol {
 pub struct PistolBundle {
     pbr: PbrBundle,
     collider: Collider,
-    rigid_body: RigidBody,
     pistol: Pistol,
     weapon: Weapon,
 }
@@ -43,7 +42,6 @@ impl PistolBundle {
                 ..default()
             },
             collider: Collider::ball(0.6),
-            rigid_body: RigidBody::Fixed,
             pistol: Pistol { ammo: PISTOL_AMMO },
             weapon: Weapon::new(PISTOL_ATTACK_SPEED),
         }
