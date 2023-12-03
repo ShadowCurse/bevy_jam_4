@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 
 mod level;
+mod player;
 
 fn main() {
     let mut app = App::new();
@@ -11,7 +12,13 @@ fn main() {
         RapierPhysicsPlugin::<NoUserData>::default(),
         RapierDebugRenderPlugin::default(),
         level::LevelPlugin,
+        player::PlayerPlugin,
     ));
+
+    app.insert_resource(AmbientLight {
+        color: Color::WHITE,
+        brightness: 0.2,
+    });
 
     app.add_systems(Startup, setup);
 
@@ -22,7 +29,7 @@ fn setup(mut commands: Commands) {
     // light
     commands.spawn(PointLightBundle {
         point_light: PointLight {
-            intensity: 100.0,
+            intensity: 1000.0,
             shadows_enabled: true,
             ..default()
         },
@@ -31,9 +38,9 @@ fn setup(mut commands: Commands) {
     });
 
     // camera
-    commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(0.0, 0.0, 20.0)
-            .looking_at(Vec3::new(50.0, 0.0, 0.0), Vec3::Z),
-        ..default()
-    });
+    // commands.spawn(Camera3dBundle {
+    //     transform: Transform::from_xyz(50.0, 0.0, 10.0)
+    //         .looking_at(Vec3::new(0.0, 0.0, 10.0), Vec3::Z),
+    //     ..default()
+    // });
 }
