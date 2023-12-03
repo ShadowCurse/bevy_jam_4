@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 
+mod enemies;
 mod level;
 mod player;
 mod weapons;
@@ -12,6 +13,7 @@ fn main() {
         DefaultPlugins,
         RapierPhysicsPlugin::<NoUserData>::default(),
         RapierDebugRenderPlugin::default(),
+        enemies::EnemiesPlugin,
         level::LevelPlugin,
         player::PlayerPlugin,
         weapons::WeaponsPlugin,
