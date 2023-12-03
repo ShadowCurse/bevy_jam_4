@@ -23,7 +23,7 @@ fn main() {
     });
 
     app.insert_resource(RapierConfiguration {
-        gravity: Vec3::NEG_Z,
+        gravity: Vec3::NEG_Z * 9.81,
         ..default()
     });
 
