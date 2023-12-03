@@ -1,7 +1,7 @@
 use bevy::{input::mouse::MouseMotion, prelude::*};
 use bevy_rapier3d::prelude::*;
 
-use crate::weapons::{Pistol, ShootEvent, WeaponAttackTimer};
+use crate::weapons::{pistol::Pistol, ShootEvent, WeaponAttackTimer};
 
 pub struct PlayerPlugin;
 
@@ -73,40 +73,26 @@ fn spawn(mut commands: Commands) {
             },
         ))
         .with_children(|builder| {
-            builder
-                .spawn((
-                    Camera3dBundle {
-                        transform: Transform::from_xyz(0.0, 0.0, 2.0)
-                            .looking_at(Vec3::new(1.0, 0.0, 2.0), Vec3::Z),
-                        ..default()
-                    },
-                    PlayerCamera {
-                        default_translation: Vec3::new(0.0, 0.0, 2.0),
-                        rotation_speed: 5.0,
+            builder.spawn((
+                Camera3dBundle {
+                    transform: Transform::from_xyz(0.0, 0.0, 2.0)
+                        .looking_at(Vec3::new(1.0, 0.0, 2.0), Vec3::Z),
+                    ..default()
+                },
+                PlayerCamera {
+                    default_translation: Vec3::new(0.0, 0.0, 2.0),
+                    rotation_speed: 5.0,
 
-                        movement_bounce_continue: false,
-                        movement_bounce_progress: 0.0,
-                        movement_bounce_speed: 5.0,
+                    movement_bounce_continue: false,
+                    movement_bounce_progress: 0.0,
+                    movement_bounce_speed: 5.0,
 
-                        movement_bounce_amplitude: 0.2,
-                        movement_bounce_amplitude_modifier: 1.0,
-                        movement_bounce_amplitude_modifier_speed: 1.0,
-                        movement_bounce_amplitude_modifier_max: 2.0,
-                    },
-                ))
-                .with_children(|builder| {
-                    builder.spawn((
-                        TransformBundle::default(),
-                        Pistol { ammo: 10 },
-                        WeaponAttackTimer {
-                            attack_timer: Timer::new(
-                                std::time::Duration::from_secs(1),
-                                TimerMode::Repeating,
-                            ),
-                        },
-                        PlayerWeapon,
-                    ));
-                });
+                    movement_bounce_amplitude: 0.2,
+                    movement_bounce_amplitude_modifier: 1.0,
+                    movement_bounce_amplitude_modifier_speed: 1.0,
+                    movement_bounce_amplitude_modifier_max: 2.0,
+                },
+            ));
         });
 }
 

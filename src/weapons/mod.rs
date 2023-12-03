@@ -3,29 +3,35 @@ use bevy_rapier3d::prelude::*;
 
 use crate::level::LevelObject;
 
-const PROJECTILE_VELOCITY: f32 = 10.0;
+pub mod pistol;
 
-const PISTOL_PROJECTILE_OFFSET_SCALE: f32 = 2.0;
-const PISTOL_PROJECTILE_SIZE: f32 = 0.3;
-const PISTOL_AMMO: u32 = 10;
-const PISTOL_DAMAGE: u32 = 10;
-const PISTOL_ATTACK_SPEED: f32 = 1.0 / 4.0;
+const FREE_FLOATING_WEAPON_ROTATION_SPEED: f32 = 0.4;
+const FREE_FLOATING_WEAPON_AMPLITUDE_MODIFIER: f32 = 0.5;
+const FREE_FLOATING_WEAPON_BOUNCE_SPEED_MODIFIER: f32 = 2.0;
 
 pub struct WeaponsPlugin;
 
 impl Plugin for WeaponsPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<ShootEvent>();
+        app.add_plugins(pistol::PistolPlugin);
+        app.add_systems(Startup, init_resources);
         app.add_systems(
             Update,
             (
                 update_attack_timers,
                 update_projectiles,
-                shoot_pistol,
+                update_free_floating_weapons,
                 // display_events,
             ),
         );
     }
+}
+
+#[derive(Resource)]
+struct WeaponsResources {
+    pistol_mesh: Handle<Mesh>,
+    pistol_material: Handle<StandardMaterial>,
 }
 
 #[derive(Component)]
@@ -51,8 +57,33 @@ pub struct WeaponAttackTimer {
 }
 
 #[derive(Component)]
-pub struct Pistol {
-    pub ammo: u32,
+pub struct FreeFloatingWeapon {
+    pub original_translation: Vec3,
+}
+
+impl WeaponAttackTimer {
+    pub fn new(seconds: f32) -> Self {
+        Self {
+            attack_timer: Timer::new(
+                std::time::Duration::from_secs_f32(seconds),
+                TimerMode::Repeating,
+            ),
+        }
+    }
+}
+
+fn init_resources(
+    mut commands: Commands,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+) {
+    let pistol_mesh = meshes.add(shape::Box::new(1.0, 0.1, 0.2).into());
+    let pistol_material = materials.add(Color::GREEN.into());
+
+    commands.insert_resource(WeaponsResources {
+        pistol_mesh,
+        pistol_material,
+    });
 }
 
 fn update_attack_timers(time: Res<Time>, mut timers: Query<&mut WeaponAttackTimer>) {
@@ -60,35 +91,6 @@ fn update_attack_timers(time: Res<Time>, mut timers: Query<&mut WeaponAttackTime
         timer.attack_timer.tick(time.delta());
     }
 }
-
-fn shoot_pistol(
-    pistols: Query<&Pistol>,
-    mut commands: Commands,
-    mut shoot_event: EventReader<ShootEvent>,
-) {
-    for e in shoot_event.read() {
-        if pistols.get(e.weapon_entity).is_ok() {
-            let translation = e.weapon_translation + e.direction * PISTOL_PROJECTILE_OFFSET_SCALE;
-            // spawn projectiles
-            commands
-                .spawn((
-                    TransformBundle::from_transform(Transform::from_translation(translation)),
-                    RigidBody::KinematicVelocityBased,
-                    Collider::ball(PISTOL_PROJECTILE_SIZE),
-                    Velocity {
-                        linvel: e.direction * PROJECTILE_VELOCITY,
-                        ..default()
-                    },
-                    Projectile {
-                        damage: PISTOL_DAMAGE,
-                    },
-                ));
-            // start shooting animation
-        }
-    }
-}
-fn animate_pistol_shoot(pistols: Query<&Pistol>) {}
-fn animate_pistol_in_the_air(pistols: Query<&Pistol>) {}
 
 fn update_projectiles(
     rapier_context: Res<RapierContext>,
@@ -106,6 +108,19 @@ fn update_projectiles(
                 commands.get_entity(projectile).unwrap().despawn();
             }
         }
+    }
+}
+
+fn update_free_floating_weapons(
+    time: Res<Time>,
+    mut weapons: Query<(&FreeFloatingWeapon, &mut Transform)>,
+) {
+    for (floating, mut weapon_transform) in weapons.iter_mut() {
+        weapon_transform.translation = floating.original_translation
+            + Vec3::NEG_Z
+                * FREE_FLOATING_WEAPON_AMPLITUDE_MODIFIER
+                * (time.elapsed().as_secs_f32() * FREE_FLOATING_WEAPON_BOUNCE_SPEED_MODIFIER).sin();
+        weapon_transform.rotate_z(time.delta_seconds() * FREE_FLOATING_WEAPON_ROTATION_SPEED);
     }
 }
 
