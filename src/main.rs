@@ -37,10 +37,17 @@ fn setup(mut commands: Commands) {
         ..default()
     });
 
-    // camera
-    // commands.spawn(Camera3dBundle {
-    //     transform: Transform::from_xyz(50.0, 0.0, 10.0)
-    //         .looking_at(Vec3::new(0.0, 0.0, 10.0), Vec3::Z),
-    //     ..default()
-    // });
+    // directional 'sun' light
+    commands.spawn(DirectionalLightBundle {
+        directional_light: DirectionalLight {
+            shadows_enabled: true,
+            ..default()
+        },
+        transform: Transform {
+            translation: Vec3::new(0.0, 2.0, 0.0),
+            rotation: Quat::from_rotation_x(-std::f32::consts::PI / 4.),
+            ..default()
+        },
+        ..default()
+    });
 }
