@@ -28,41 +28,41 @@ impl Plugin for PlayerPlugin {
 }
 
 #[derive(Component)]
-struct Player {
-    acceleration: f32,
-    slow_down_rade: f32,
-    max_movement_speed_squared: f32,
+pub struct Player {
+    pub acceleration: f32,
+    pub slow_down_rade: f32,
+    pub max_movement_speed_squared: f32,
 }
 
 #[derive(Component)]
-struct PlayerVelocity {
-    was_input: bool,
-    velocity: Vec3,
+pub struct PlayerVelocity {
+    pub was_input: bool,
+    pub velocity: Vec3,
 }
 
 #[derive(Component)]
-struct PlayerCamera {
-    default_translation: Vec3,
-    rotation_speed: f32,
+pub struct PlayerCamera {
+    pub default_translation: Vec3,
+    pub rotation_speed: f32,
 
-    bounce_continue: bool,
-    bounce_progress: f32,
-    bounce_speed: f32,
+    pub bounce_continue: bool,
+    pub bounce_progress: f32,
+    pub bounce_speed: f32,
 
-    bounce_amplitude: f32,
-    bounce_amplitude_modifier: f32,
-    bounce_amplitude_modifier_speed: f32,
-    bounce_amplitude_modifier_max: f32,
+    pub bounce_amplitude: f32,
+    pub bounce_amplitude_modifier: f32,
+    pub bounce_amplitude_modifier_speed: f32,
+    pub bounce_amplitude_modifier_max: f32,
 }
 
 #[derive(Component)]
-struct PlayerWeapon {
-    default_translation: Vec3,
+pub struct PlayerWeapon {
+    pub default_translation: Vec3,
 
-    bounce_continue: bool,
-    bounce_progress: f32,
-    bounce_speed: f32,
-    bounce_amplitude: f32,
+    pub bounce_continue: bool,
+    pub bounce_progress: f32,
+    pub bounce_speed: f32,
+    pub bounce_amplitude: f32,
 }
 
 fn spawn(mut commands: Commands) {
