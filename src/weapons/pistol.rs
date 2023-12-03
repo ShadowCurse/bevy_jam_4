@@ -52,7 +52,8 @@ impl PistolBundle {
 
 fn spawn(weapons_resources: Res<WeaponsResources>, mut commands: Commands) {
     let translation = Vec3::new(10.0, 10.0, 5.0);
-    let transform = Transform::from_translation(translation);
+    let transform = Transform::from_translation(translation)
+        .with_rotation(Quat::from_rotation_x(std::f32::consts::FRAC_PI_2));
     commands.spawn((
         PistolBundle::new(transform, weapons_resources.as_ref()),
         FreeFloatingWeapon {
