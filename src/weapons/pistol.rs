@@ -27,7 +27,6 @@ pub struct Pistol {
 #[derive(Bundle)]
 pub struct PistolBundle {
     pbr: PbrBundle,
-    collider: Collider,
     pistol: Pistol,
     weapon: Weapon,
 }
@@ -41,7 +40,6 @@ impl PistolBundle {
                 transform,
                 ..default()
             },
-            collider: Collider::ball(0.6),
             pistol: Pistol { ammo: PISTOL_AMMO },
             weapon: Weapon::new(PISTOL_ATTACK_SPEED),
         }
@@ -54,6 +52,7 @@ fn spawn(weapons_resources: Res<WeaponsResources>, mut commands: Commands) {
         .with_rotation(Quat::from_rotation_x(std::f32::consts::FRAC_PI_2));
     commands.spawn((
         PistolBundle::new(transform, weapons_resources.as_ref()),
+        Collider::ball(0.6),
         FreeFloatingWeapon {
             original_translation: translation,
         },
