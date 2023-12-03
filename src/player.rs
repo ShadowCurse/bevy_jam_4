@@ -4,6 +4,8 @@ use bevy_rapier3d::prelude::*;
 use crate::weapons::{FreeFloatingWeapon, ShootEvent, Weapon};
 
 const PLAYER_WEAPON_DEFAULT_TRANSLATION: Vec3 = Vec3::new(0.0, -0.5, -1.4);
+const PLAYER_THROW_OFFSET_SCALE: f32 = 10.0;
+const PLAYER_THROW_STRENGTH: f32 = 20.0;
 
 pub struct PlayerPlugin;
 
@@ -15,6 +17,7 @@ impl Plugin for PlayerPlugin {
             (
                 player_shoot,
                 player_pick_up_weapon,
+                player_throw_weapon,
                 player_update,
                 player_move,
                 player_camera_update,
@@ -144,6 +147,46 @@ fn player_pick_up_weapon(
                     .remove::<(Collider, FreeFloatingWeapon)>();
             }
         }
+    }
+}
+
+fn player_throw_weapon(
+    keys: Res<Input<KeyCode>>,
+    player_camera: Query<Entity, With<PlayerCamera>>,
+    player_weapon_components: Query<(Entity, &GlobalTransform), With<PlayerWeapon>>,
+    mut commands: Commands,
+) {
+    let Ok(camera) = player_camera.get_single() else {
+        return;
+    };
+
+    let Ok((weapon, weapon_global_transform)) = player_weapon_components.get_single() else {
+        return;
+    };
+
+    if keys.pressed(KeyCode::F) {
+        commands
+            .get_entity(camera)
+            .unwrap()
+            .remove_children(&[weapon]);
+
+        commands
+            .get_entity(weapon)
+            .unwrap()
+            .remove::<PlayerWeapon>()
+            .insert((
+                Transform::from_translation(
+                    weapon_global_transform.translation()
+                        + weapon_global_transform.forward() * PLAYER_THROW_OFFSET_SCALE,
+                )
+                .with_rotation(Quat::from_rotation_x(std::f32::consts::FRAC_PI_2)),
+                Collider::cuboid(0.6, 0.6, 0.3),
+                RigidBody::Dynamic,
+                Velocity {
+                    linvel: weapon_global_transform.forward() * PLAYER_THROW_STRENGTH,
+                    ..default()
+                },
+            ));
     }
 }
 
