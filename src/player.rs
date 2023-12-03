@@ -1,7 +1,7 @@
 use bevy::{input::mouse::MouseMotion, prelude::*};
 use bevy_rapier3d::prelude::*;
 
-use crate::weapons::{pistol::Pistol, ShootEvent, Weapon};
+use crate::weapons::{FreeFloatingWeapon, ShootEvent, Weapon};
 
 pub struct PlayerPlugin;
 
@@ -12,9 +12,11 @@ impl Plugin for PlayerPlugin {
             Update,
             (
                 player_shoot,
+                player_pick_up_weapon,
                 player_update,
                 player_move,
                 player_camera_update,
+                player_weapon_update,
             ),
         );
     }
@@ -79,6 +81,10 @@ fn spawn(mut commands: Commands) {
                         .looking_at(Vec3::new(1.0, 0.0, 2.0), Vec3::Z),
                     ..default()
                 },
+                // TransformBundle::from_transform(
+                //     Transform::from_xyz(0.0, 0.0, 2.0) //.with_rotation(Quat::from_rotation_x(std::f32::consts::FRAC_PI_2))
+                //         .looking_at(Vec3::new(1.0, 0.0, 2.0), Vec3::Z),
+                // ),
                 PlayerCamera {
                     default_translation: Vec3::new(0.0, 0.0, 2.0),
                     rotation_speed: 5.0,
@@ -92,8 +98,38 @@ fn spawn(mut commands: Commands) {
                     movement_bounce_amplitude_modifier_speed: 1.0,
                     movement_bounce_amplitude_modifier_max: 2.0,
                 },
+                Collider::ball(0.5),
             ));
         });
+}
+
+fn player_pick_up_weapon(
+    rapier_context: Res<RapierContext>,
+    player: Query<Entity, With<Player>>,
+    player_camera: Query<Entity, With<PlayerCamera>>,
+    weapons: Query<Entity, With<Weapon>>,
+    mut commands: Commands,
+) {
+    let Ok(player) = player.get_single() else {
+        return;
+    };
+
+    let Ok(camera) = player_camera.get_single() else {
+        return;
+    };
+
+    for weapon in weapons.iter() {
+        for contact_pair in rapier_context.contacts_with(weapon) {
+            if contact_pair.collider1() == player || contact_pair.collider2() == player {
+                commands.get_entity(camera).unwrap().add_child(weapon);
+                commands
+                    .get_entity(weapon)
+                    .unwrap()
+                    .insert(PlayerWeapon)
+                    .remove::<(Collider, FreeFloatingWeapon)>();
+            }
+        }
+    }
 }
 
 fn player_shoot(
@@ -223,4 +259,14 @@ fn player_camera_update(
             camera.movement_bounce_amplitude_modifier = 1.0;
         }
     }
+}
+
+fn player_weapon_update(mut weapon: Query<&mut Transform, With<PlayerWeapon>>) {
+    let Ok(mut weapon_transform) = weapon.get_single_mut() else {
+        return;
+    };
+    // left hand coordinates?
+    // x -> right y -> up z -> forward
+    weapon_transform.rotation = Quat::IDENTITY;
+    weapon_transform.translation = Vec3::new(0.0, -0.5, -1.4);
 }

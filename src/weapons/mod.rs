@@ -77,7 +77,7 @@ fn init_resources(
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
-    let pistol_mesh = meshes.add(shape::Box::new(1.0, 0.1, 0.2).into());
+    let pistol_mesh = meshes.add(shape::Box::new(0.1, 1.0, 0.2).into());
     let pistol_material = materials.add(Color::GREEN.into());
 
     commands.insert_resource(WeaponsResources {
@@ -121,6 +121,7 @@ fn update_free_floating_weapons(
                 * FREE_FLOATING_WEAPON_AMPLITUDE_MODIFIER
                 * (time.elapsed().as_secs_f32() * FREE_FLOATING_WEAPON_BOUNCE_SPEED_MODIFIER).sin();
         weapon_transform.rotate_z(time.delta_seconds() * FREE_FLOATING_WEAPON_ROTATION_SPEED);
+        println!("rotating gun forward: {:#?}", weapon_transform.forward());
     }
 }
 

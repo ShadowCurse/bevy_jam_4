@@ -34,12 +34,12 @@ pub struct PistolBundle {
 }
 
 impl PistolBundle {
-    pub fn new(translation: Vec3, weapons_resources: &WeaponsResources) -> Self {
+    pub fn new(transform: Transform, weapons_resources: &WeaponsResources) -> Self {
         Self {
             pbr: PbrBundle {
                 mesh: weapons_resources.pistol_mesh.clone(),
                 material: weapons_resources.pistol_material.clone(),
-                transform: Transform::from_translation(translation),
+                transform,
                 ..default()
             },
             collider: Collider::ball(0.6),
@@ -52,8 +52,9 @@ impl PistolBundle {
 
 fn spawn(weapons_resources: Res<WeaponsResources>, mut commands: Commands) {
     let translation = Vec3::new(10.0, 10.0, 5.0);
+    let transform = Transform::from_translation(translation);
     commands.spawn((
-        PistolBundle::new(translation, weapons_resources.as_ref()),
+        PistolBundle::new(transform, weapons_resources.as_ref()),
         FreeFloatingWeapon {
             original_translation: translation,
         },
