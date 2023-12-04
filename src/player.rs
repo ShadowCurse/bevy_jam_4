@@ -1,7 +1,10 @@
 use bevy::{input::mouse::MouseMotion, prelude::*};
 use bevy_rapier3d::prelude::*;
 
-use crate::weapons::{FreeFloatingWeapon, ShootEvent, WeaponAttackTimer};
+use crate::{
+    weapons::{FreeFloatingWeapon, ShootEvent, WeaponAttackTimer},
+    COLLISION_GROUP_ENEMY, COLLISION_GROUP_LEVEL, COLLISION_GROUP_PLAYER,
+};
 
 const PLAYER_WEAPON_DEFAULT_TRANSLATION: Vec3 = Vec3::new(0.0, -0.5, -1.4);
 const PLAYER_THROW_OFFSET_SCALE: f32 = 10.0;
@@ -71,6 +74,7 @@ fn spawn(mut commands: Commands) {
             TransformBundle::from_transform(Transform::from_translation(Vec3::new(0.0, 0.0, 5.0))),
             RigidBody::KinematicPositionBased,
             Collider::capsule(Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 5.0), 2.0),
+            CollisionGroups::new(COLLISION_GROUP_PLAYER, COLLISION_GROUP_LEVEL),
             KinematicCharacterController {
                 up: Vec3::Z,
                 offset: CharacterLength::Relative(0.1),

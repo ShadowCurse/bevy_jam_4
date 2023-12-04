@@ -1,7 +1,10 @@
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 
-use crate::damage::Damage;
+use crate::{
+    damage::Damage, COLLISION_GROUP_ENEMY, COLLISION_GROUP_LEVEL, COLLISION_GROUP_PLAYER,
+    COLLISION_GROUP_PROJECTILES,
+};
 
 use super::{FreeFloatingWeapon, Projectile, ShootEvent, WeaponAttackTimer, WeaponsResources};
 
@@ -74,6 +77,10 @@ fn shoot_pistol(
                 TransformBundle::from_transform(Transform::from_translation(translation)),
                 RigidBody::Dynamic,
                 Collider::ball(PISTOL_PROJECTILE_SIZE),
+                CollisionGroups::new(
+                    COLLISION_GROUP_PROJECTILES,
+                    COLLISION_GROUP_LEVEL | COLLISION_GROUP_PLAYER | COLLISION_GROUP_ENEMY,
+                ),
                 ActiveEvents::COLLISION_EVENTS,
                 Velocity {
                     linvel: e.direction * PISTOL_PROJECTILE_VELOCITY,

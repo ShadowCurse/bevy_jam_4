@@ -29,9 +29,9 @@ const FRIDGE_DEATH_GAP_DELTA_Z: f32 = FRIDGE_DEATH_GAP_Z / FRIDGE_PARTS_Z as f32
 const FRIDGE_DEATH_PULSE_STENGTH: f32 = 0.8;
 
 const FRIDGE_HEALTH: i32 = 100;
-const FRIDGE_SPEED: f32 = 5.0;
+const FRIDGE_SPEED: f32 = 15.0;
 const FRIDGE_MIN_DISTANCE: f32 = 200.0;
-const FRIDGE_WEAPON_OFFSET: Vec3 = Vec3::new(1.0, -1.0, 0.5);
+const FRIDGE_WEAPON_OFFSET: Vec3 = Vec3::new(2.0, -2.0, 0.5);
 
 pub struct FridgePlugin;
 
@@ -77,7 +77,7 @@ fn spawn(
     weapons_resources: Res<WeaponsResources>,
     mut commands: Commands,
 ) {
-    let translation = Vec3::new(20.0, 0.0, 5.0);
+    let translation = Vec3::new(-20.0, 0.0, 5.0);
     let transform = Transform::from_translation(translation);
     let weapon_transform = Transform::from_translation(FRIDGE_WEAPON_OFFSET).with_rotation(
         Quat::from_rotation_y(std::f32::consts::FRAC_PI_2)
@@ -104,28 +104,30 @@ fn spawn(
 fn fridge_move(
     time: Res<Time>,
     player: Query<&Transform, (With<Player>, Without<Fridge>)>,
-    mut fridges: Query<(&mut Velocity, &mut Transform), (With<Fridge>, Without<Player>)>,
+    mut fridges: Query<
+        (&mut Transform, &mut KinematicCharacterController),
+        (With<Fridge>, Without<Player>),
+    >,
 ) {
     let Ok(player_transfomr) = player.get_single() else {
         return;
     };
 
-    for (mut enemy_velocity, mut enemy_transform) in fridges.iter_mut() {
-        let v = player_transfomr.translation - enemy_transform.translation;
+    for (mut fridge_transform, mut fridge_controller) in fridges.iter_mut() {
+        let v = player_transfomr.translation - fridge_transform.translation;
         let direction = v.normalize();
-        if v.length_squared() < FRIDGE_MIN_DISTANCE {
-            enemy_velocity.linvel = Vec3::ZERO;
-        } else {
-            enemy_velocity.linvel = direction * FRIDGE_SPEED;
+        if FRIDGE_MIN_DISTANCE < v.length_squared() {
+            let movement = direction * FRIDGE_SPEED * time.delta_seconds();
+            fridge_controller.translation = Some(movement);
         }
 
-        let enemy_forward = enemy_transform.rotation * Vec3::X;
+        let enemy_forward = fridge_transform.rotation * Vec3::X;
         let mut angle = direction.angle_between(enemy_forward);
         let cross = direction.cross(enemy_forward);
         if 0.0 <= cross.z {
             angle *= -1.0;
         }
-        enemy_transform.rotate_z(angle * time.delta_seconds());
+        fridge_transform.rotate_z(angle * time.delta_seconds());
     }
 }
 

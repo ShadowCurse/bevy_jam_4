@@ -1,7 +1,9 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, sprite::collide_aabb::Collision};
 use bevy_rapier3d::{prelude::*, rapier::geometry::CollisionEventFlags};
 
-use crate::weapons::Projectile;
+use crate::{
+    weapons::Projectile, COLLISION_GROUP_ENEMY, COLLISION_GROUP_LEVEL, COLLISION_GROUP_PROJECTILES,
+};
 
 pub struct LevelPlugin;
 
@@ -51,6 +53,27 @@ fn generate_level(
         LevelObject,
     ));
 
+    // +X test wall
+    let dimentions = Vec3::new(1.0, 100.0, 10.0);
+    let mesh = meshes.add(shape::Box::new(dimentions.x, dimentions.y, dimentions.z).into());
+    let transform = Transform::from_translation(Vec3::new(20.0, 0.0, 5.0));
+    commands.spawn((
+        PbrBundle {
+            mesh: mesh.clone(),
+            material: level_resources.wall_material.clone(),
+            transform,
+            ..default()
+        },
+        Collider::cuboid(dimentions.x / 2.0, dimentions.y / 2.0, dimentions.z / 2.0),
+        CollisionGroups::new(
+            COLLISION_GROUP_LEVEL,
+            COLLISION_GROUP_ENEMY | COLLISION_GROUP_PROJECTILES,
+        ),
+        ActiveCollisionTypes::default() | ActiveCollisionTypes::KINEMATIC_STATIC,
+        RigidBody::Fixed,
+        LevelObject,
+    ));
+
     // +X wall
     let dimentions = Vec3::new(1.0, 500.0, 10.0);
     let mesh = meshes.add(shape::Box::new(dimentions.x, dimentions.y, dimentions.z).into());
@@ -63,6 +86,7 @@ fn generate_level(
             ..default()
         },
         Collider::cuboid(dimentions.x / 2.0, dimentions.y / 2.0, dimentions.z / 2.0),
+        CollisionGroups::new(COLLISION_GROUP_LEVEL, COLLISION_GROUP_PROJECTILES),
         RigidBody::Fixed,
         LevelObject,
     ));
@@ -77,6 +101,7 @@ fn generate_level(
             ..default()
         },
         Collider::cuboid(dimentions.x / 2.0, dimentions.y / 2.0, dimentions.z / 2.0),
+        CollisionGroups::new(COLLISION_GROUP_LEVEL, COLLISION_GROUP_PROJECTILES),
         RigidBody::Fixed,
         LevelObject,
     ));
@@ -93,6 +118,7 @@ fn generate_level(
             ..default()
         },
         Collider::cuboid(dimentions.x / 2.0, dimentions.y / 2.0, dimentions.z / 2.0),
+        CollisionGroups::new(COLLISION_GROUP_LEVEL, COLLISION_GROUP_PROJECTILES),
         RigidBody::Fixed,
         LevelObject,
     ));
@@ -107,6 +133,7 @@ fn generate_level(
             ..default()
         },
         Collider::cuboid(dimentions.x / 2.0, dimentions.y / 2.0, dimentions.z / 2.0),
+        CollisionGroups::new(COLLISION_GROUP_LEVEL, COLLISION_GROUP_PROJECTILES),
         RigidBody::Fixed,
         LevelObject,
     ));

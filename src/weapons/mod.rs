@@ -96,12 +96,12 @@ fn update_free_floating_weapons(
 }
 
 // fn display_events(
-//     rapier_context: Res<RapierContext>,
-//     mut collision_events: EventReader<CollisionEvent>,
+//     // rapier_context: Res<bevy_rapier3d::plugin::RapierContext>,
+//     mut collision_events: EventReader<bevy_rapier3d::pipeline::CollisionEvent>,
 // ) {
-//     for p in rapier_context.contact_pairs() {
-//         println!("pair: {:?} : {:?}", p.collider1(), p.collider2());
-//     }
+//     // for p in rapier_context.contact_pairs() {
+//     //     println!("pair: {:?} : {:?}", p.collider1(), p.collider2());
+//     // }
 //     for collision_event in collision_events.read() {
 //         println!("Received collision event: {:?}", collision_event);
 //     }

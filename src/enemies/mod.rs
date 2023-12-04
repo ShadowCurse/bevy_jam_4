@@ -1,6 +1,11 @@
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 
+use crate::{
+    COLLISION_GROUP_ENEMY, COLLISION_GROUP_LEVEL, COLLISION_GROUP_PLAYER,
+    COLLISION_GROUP_PROJECTILES,
+};
+
 use self::fridge::{
     FRIDGE_DIMENTION_X, FRIDGE_DIMENTION_Y, FRIDGE_DIMENTION_Z, FRIDGE_PART_DIMENTION_X,
     FRIDGE_PART_DIMENTION_Y, FRIDGE_PART_DIMENTION_Z,
@@ -30,7 +35,9 @@ pub struct Enemy;
 #[derive(Bundle)]
 pub struct EnemyBundle {
     pbr: PbrBundle,
+    controller: KinematicCharacterController,
     collider: Collider,
+    collision_groups: CollisionGroups,
     rigid_body: RigidBody,
     velocity: Velocity,
     enemy: Enemy,
@@ -45,8 +52,17 @@ impl EnemyBundle {
                 transform,
                 ..default()
             },
+            controller: KinematicCharacterController {
+                up: Vec3::Z,
+                offset: CharacterLength::Relative(0.1),
+                ..default()
+            },
             collider: Collider::capsule(Vec3::new(0.0, 0.0, -3.5), Vec3::new(0.0, 0.0, 3.5), 2.0),
-            rigid_body: RigidBody::KinematicVelocityBased,
+            collision_groups: CollisionGroups::new(
+                COLLISION_GROUP_ENEMY,
+                COLLISION_GROUP_LEVEL | COLLISION_GROUP_PLAYER | COLLISION_GROUP_PROJECTILES,
+            ),
+            rigid_body: RigidBody::KinematicPositionBased,
             velocity: Velocity::default(),
             enemy: Enemy,
         }
