@@ -1,13 +1,15 @@
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 
-use super::{FreeFloatingWeapon, Projectile, ShootEvent, Weapon, WeaponsResources};
+use crate::damage::Damage;
+
+use super::{FreeFloatingWeapon, Projectile, ShootEvent, WeaponAttackTimer, WeaponsResources};
 
 const PISTOL_PROJECTILE_VELOCITY: f32 = 10.0;
 const PISTOL_PROJECTILE_OFFSET_SCALE: f32 = 2.0;
 const PISTOL_PROJECTILE_SIZE: f32 = 0.3;
 const PISTOL_AMMO: u32 = 10;
-const PISTOL_DAMAGE: u32 = 10;
+const PISTOL_DAMAGE: i32 = 10;
 const PISTOL_ATTACK_SPEED: f32 = 1.0 / 4.0;
 
 pub struct PistolPlugin;
@@ -28,7 +30,7 @@ pub struct Pistol {
 pub struct PistolBundle {
     pbr: PbrBundle,
     pistol: Pistol,
-    weapon: Weapon,
+    weapon: WeaponAttackTimer,
 }
 
 impl PistolBundle {
@@ -41,7 +43,7 @@ impl PistolBundle {
                 ..default()
             },
             pistol: Pistol { ammo: PISTOL_AMMO },
-            weapon: Weapon::new(PISTOL_ATTACK_SPEED),
+            weapon: WeaponAttackTimer::new(PISTOL_ATTACK_SPEED),
         }
     }
 }
@@ -76,7 +78,8 @@ fn shoot_pistol(
                     linvel: e.direction * PISTOL_PROJECTILE_VELOCITY,
                     ..default()
                 },
-                Projectile {
+                Projectile,
+                Damage {
                     damage: PISTOL_DAMAGE,
                 },
             ));

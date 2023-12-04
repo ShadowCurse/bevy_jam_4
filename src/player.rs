@@ -1,7 +1,7 @@
 use bevy::{input::mouse::MouseMotion, prelude::*};
 use bevy_rapier3d::prelude::*;
 
-use crate::weapons::{FreeFloatingWeapon, ShootEvent, Weapon};
+use crate::weapons::{FreeFloatingWeapon, ShootEvent, WeaponAttackTimer};
 
 const PLAYER_WEAPON_DEFAULT_TRANSLATION: Vec3 = Vec3::new(0.0, -0.5, -1.4);
 const PLAYER_THROW_OFFSET_SCALE: f32 = 10.0;
@@ -119,7 +119,7 @@ fn player_pick_up_weapon(
     rapier_context: Res<RapierContext>,
     player: Query<Entity, With<Player>>,
     player_camera: Query<Entity, With<PlayerCamera>>,
-    weapons: Query<Entity, With<Weapon>>,
+    weapons: Query<Entity, With<WeaponAttackTimer>>,
     mut commands: Commands,
 ) {
     let Ok(player) = player.get_single() else {
@@ -192,7 +192,10 @@ fn player_throw_weapon(
 
 fn player_shoot(
     keys: Res<Input<KeyCode>>,
-    player_weapon_components: Query<(Entity, &GlobalTransform, &Weapon), With<PlayerWeapon>>,
+    player_weapon_components: Query<
+        (Entity, &GlobalTransform, &WeaponAttackTimer),
+        With<PlayerWeapon>,
+    >,
     mut shoot_event: EventWriter<ShootEvent>,
 ) {
     let Ok((weapon_entity, weapon_global_transform, weapon_attack_timer)) =

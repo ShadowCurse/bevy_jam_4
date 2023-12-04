@@ -1,12 +1,15 @@
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 
+use crate::weapons::Projectile;
+
 pub struct LevelPlugin;
 
 impl Plugin for LevelPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, init);
         app.add_systems(PostStartup, generate_level);
+        app.add_systems(Update, collision_level_object_projectiles);
     }
 }
 
@@ -107,4 +110,23 @@ fn generate_level(
         RigidBody::Fixed,
         LevelObject,
     ));
+}
+
+fn collision_level_object_projectiles(
+    rapier_context: Res<RapierContext>,
+    projectiles: Query<Entity, With<Projectile>>,
+    level_objects: Query<Entity, With<LevelObject>>,
+    mut commands: Commands,
+) {
+    for projectile in projectiles.iter() {
+        for contact_pair in rapier_context.contacts_with(projectile) {
+            if level_objects
+                .get(contact_pair.collider1())
+                .or(level_objects.get(contact_pair.collider2()))
+                .is_ok()
+            {
+                commands.get_entity(projectile).unwrap().despawn();
+            }
+        }
+    }
 }

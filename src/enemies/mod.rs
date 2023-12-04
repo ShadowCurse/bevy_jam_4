@@ -1,6 +1,11 @@
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 
+use self::fridge::{
+    FRIDGE_DIMENTION_X, FRIDGE_DIMENTION_Y, FRIDGE_DIMENTION_Z, FRIDGE_PART_DIMENTION_X,
+    FRIDGE_PART_DIMENTION_Y, FRIDGE_PART_DIMENTION_Z,
+};
+
 pub mod fridge;
 
 pub struct EnemiesPlugin;
@@ -15,14 +20,12 @@ impl Plugin for EnemiesPlugin {
 #[derive(Resource)]
 pub struct EnemiesResources {
     fridge_mesh: Handle<Mesh>,
+    fridge_part_mesh: Handle<Mesh>,
     fridge_material: Handle<StandardMaterial>,
 }
 
 #[derive(Component)]
 pub struct Enemy;
-
-#[derive(Component)]
-pub struct EnemyWeapon;
 
 #[derive(Bundle)]
 pub struct EnemyBundle {
@@ -56,11 +59,21 @@ fn init_resources(
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
     // forward = -Z
-    let mesh = meshes.add(shape::Box::new(0.5, 3.5, 7.0).into());
-    let material = materials.add(Color::WHITE.into());
+    let fridge_mesh = meshes
+        .add(shape::Box::new(FRIDGE_DIMENTION_X, FRIDGE_DIMENTION_Y, FRIDGE_DIMENTION_Z).into());
+    let fridge_part_mesh = meshes.add(
+        shape::Box::new(
+            FRIDGE_PART_DIMENTION_X,
+            FRIDGE_PART_DIMENTION_Y,
+            FRIDGE_PART_DIMENTION_Z,
+        )
+        .into(),
+    );
+    let fridge_material = materials.add(Color::WHITE.into());
 
     commands.insert_resource(EnemiesResources {
-        fridge_mesh: mesh,
-        fridge_material: material,
+        fridge_mesh,
+        fridge_part_mesh,
+        fridge_material,
     });
 }

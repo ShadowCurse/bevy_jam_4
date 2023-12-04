@@ -1,7 +1,4 @@
 use bevy::prelude::*;
-use bevy_rapier3d::prelude::*;
-
-use crate::level::LevelObject;
 
 pub mod pistol;
 
@@ -20,7 +17,6 @@ impl Plugin for WeaponsPlugin {
             Update,
             (
                 update_attack_timers,
-                update_projectiles,
                 update_free_floating_weapons,
                 // display_events,
             ),
@@ -35,14 +31,7 @@ pub struct WeaponsResources {
 }
 
 #[derive(Component)]
-pub struct ProjectileDirection {
-    direction: Vec3,
-}
-
-#[derive(Component)]
-pub struct Projectile {
-    damage: u32,
-}
+pub struct Projectile;
 
 #[derive(Event)]
 pub struct ShootEvent {
@@ -52,7 +41,7 @@ pub struct ShootEvent {
 }
 
 #[derive(Component)]
-pub struct Weapon {
+pub struct WeaponAttackTimer {
     pub attack_timer: Timer,
 }
 
@@ -61,7 +50,7 @@ pub struct FreeFloatingWeapon {
     pub original_translation: Vec3,
 }
 
-impl Weapon {
+impl WeaponAttackTimer {
     pub fn new(seconds: f32) -> Self {
         Self {
             attack_timer: Timer::new(
@@ -87,28 +76,9 @@ fn init_resources(
     });
 }
 
-fn update_attack_timers(time: Res<Time>, mut timers: Query<&mut Weapon>) {
+fn update_attack_timers(time: Res<Time>, mut timers: Query<&mut WeaponAttackTimer>) {
     for mut timer in timers.iter_mut() {
         timer.attack_timer.tick(time.delta());
-    }
-}
-
-fn update_projectiles(
-    rapier_context: Res<RapierContext>,
-    projectiles: Query<Entity, With<Projectile>>,
-    level_objects: Query<Entity, With<LevelObject>>,
-    mut commands: Commands,
-) {
-    for projectile in projectiles.iter() {
-        for contact_pair in rapier_context.contacts_with(projectile) {
-            if level_objects
-                .get(contact_pair.collider1())
-                .or(level_objects.get(contact_pair.collider2()))
-                .is_ok()
-            {
-                commands.get_entity(projectile).unwrap().despawn();
-            }
-        }
     }
 }
 
@@ -125,14 +95,14 @@ fn update_free_floating_weapons(
     }
 }
 
-fn display_events(
-    rapier_context: Res<RapierContext>,
-    mut collision_events: EventReader<CollisionEvent>,
-) {
-    for p in rapier_context.contact_pairs() {
-        println!("pair: {:?} : {:?}", p.collider1(), p.collider2());
-    }
-    for collision_event in collision_events.read() {
-        println!("Received collision event: {:?}", collision_event);
-    }
-}
+// fn display_events(
+//     rapier_context: Res<RapierContext>,
+//     mut collision_events: EventReader<CollisionEvent>,
+// ) {
+//     for p in rapier_context.contact_pairs() {
+//         println!("pair: {:?} : {:?}", p.collider1(), p.collider2());
+//     }
+//     for collision_event in collision_events.read() {
+//         println!("Received collision event: {:?}", collision_event);
+//     }
+// }
