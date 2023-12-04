@@ -1,9 +1,7 @@
-use bevy::{prelude::*, sprite::collide_aabb::Collision};
+use bevy::prelude::*;
 use bevy_rapier3d::{prelude::*, rapier::geometry::CollisionEventFlags};
 
-use crate::{
-    weapons::Projectile, COLLISION_GROUP_ENEMY, COLLISION_GROUP_LEVEL, COLLISION_GROUP_PROJECTILES,
-};
+use crate::{COLLISION_GROUP_ENEMY, COLLISION_GROUP_LEVEL, COLLISION_GROUP_PROJECTILES};
 
 pub struct LevelPlugin;
 
@@ -24,6 +22,53 @@ struct LevelResources {
     wall_material: Handle<StandardMaterial>,
 }
 
+#[derive(Bundle)]
+struct LevelObjectBundle {
+    pbr_bundle: PbrBundle,
+    collider: Collider,
+    collision_groups: CollisionGroups,
+    active_collision_types: ActiveCollisionTypes,
+    rigid_body: RigidBody,
+    level_object: LevelObject,
+}
+
+impl Default for LevelObjectBundle {
+    fn default() -> Self {
+        Self {
+            pbr_bundle: PbrBundle::default(),
+            collider: Collider::default(),
+            collision_groups: CollisionGroups::new(
+                COLLISION_GROUP_LEVEL,
+                COLLISION_GROUP_ENEMY | COLLISION_GROUP_PROJECTILES,
+            ),
+            active_collision_types: ActiveCollisionTypes::default()
+                | ActiveCollisionTypes::KINEMATIC_STATIC,
+            rigid_body: RigidBody::Fixed,
+            level_object: LevelObject,
+        }
+    }
+}
+
+impl LevelObjectBundle {
+    pub fn new(
+        mesh: Handle<Mesh>,
+        material: Handle<StandardMaterial>,
+        transform: Transform,
+        collider: Collider,
+    ) -> Self {
+        Self {
+            pbr_bundle: PbrBundle {
+                mesh,
+                material,
+                transform,
+                ..default()
+            },
+            collider,
+            ..default()
+        }
+    }
+}
+
 fn init(mut commands: Commands, mut materials: ResMut<Assets<StandardMaterial>>) {
     let floor_material = materials.add(Color::GRAY.into());
     let wall_material = materials.add(Color::DARK_GRAY.into());
@@ -42,100 +87,62 @@ fn generate_level(
     // floor
     let dimentions = Vec3::new(500.0, 500.0, 1.0);
     let mesh = meshes.add(shape::Box::new(dimentions.x, dimentions.y, dimentions.z).into());
-    commands.spawn((
-        PbrBundle {
-            mesh,
-            material: level_resources.floor_material.clone(),
-            ..default()
-        },
+    commands.spawn(LevelObjectBundle::new(
+        mesh,
+        level_resources.floor_material.clone(),
+        Transform::default(),
         Collider::cuboid(dimentions.x / 2.0, dimentions.y / 2.0, dimentions.z / 2.0),
-        RigidBody::Fixed,
-        LevelObject,
     ));
 
     // +X test wall
     let dimentions = Vec3::new(1.0, 100.0, 10.0);
     let mesh = meshes.add(shape::Box::new(dimentions.x, dimentions.y, dimentions.z).into());
     let transform = Transform::from_translation(Vec3::new(20.0, 0.0, 5.0));
-    commands.spawn((
-        PbrBundle {
-            mesh: mesh.clone(),
-            material: level_resources.wall_material.clone(),
-            transform,
-            ..default()
-        },
+    commands.spawn(LevelObjectBundle::new(
+        mesh.clone(),
+        level_resources.wall_material.clone(),
+        transform,
         Collider::cuboid(dimentions.x / 2.0, dimentions.y / 2.0, dimentions.z / 2.0),
-        CollisionGroups::new(
-            COLLISION_GROUP_LEVEL,
-            COLLISION_GROUP_ENEMY | COLLISION_GROUP_PROJECTILES,
-        ),
-        ActiveCollisionTypes::default() | ActiveCollisionTypes::KINEMATIC_STATIC,
-        RigidBody::Fixed,
-        LevelObject,
     ));
 
     // +X wall
     let dimentions = Vec3::new(1.0, 500.0, 10.0);
     let mesh = meshes.add(shape::Box::new(dimentions.x, dimentions.y, dimentions.z).into());
     let transform = Transform::from_translation(Vec3::new(250.0, 0.0, 5.0));
-    commands.spawn((
-        PbrBundle {
-            mesh: mesh.clone(),
-            material: level_resources.wall_material.clone(),
-            transform,
-            ..default()
-        },
+    commands.spawn(LevelObjectBundle::new(
+        mesh.clone(),
+        level_resources.wall_material.clone(),
+        transform,
         Collider::cuboid(dimentions.x / 2.0, dimentions.y / 2.0, dimentions.z / 2.0),
-        CollisionGroups::new(COLLISION_GROUP_LEVEL, COLLISION_GROUP_PROJECTILES),
-        RigidBody::Fixed,
-        LevelObject,
     ));
 
     // -X wall
     let transform = Transform::from_translation(Vec3::new(-250.0, 0.0, 5.0));
-    commands.spawn((
-        PbrBundle {
-            mesh,
-            material: level_resources.wall_material.clone(),
-            transform,
-            ..default()
-        },
+    commands.spawn(LevelObjectBundle::new(
+        mesh,
+        level_resources.wall_material.clone(),
+        transform,
         Collider::cuboid(dimentions.x / 2.0, dimentions.y / 2.0, dimentions.z / 2.0),
-        CollisionGroups::new(COLLISION_GROUP_LEVEL, COLLISION_GROUP_PROJECTILES),
-        RigidBody::Fixed,
-        LevelObject,
     ));
 
     // +Y wall
     let dimentions = Vec3::new(500.0, 1.0, 10.0);
     let mesh = meshes.add(shape::Box::new(dimentions.x, dimentions.y, dimentions.z).into());
     let transform = Transform::from_translation(Vec3::new(0.0, 250.0, 5.0));
-    commands.spawn((
-        PbrBundle {
-            mesh: mesh.clone(),
-            material: level_resources.wall_material.clone(),
-            transform,
-            ..default()
-        },
+    commands.spawn(LevelObjectBundle::new(
+        mesh.clone(),
+        level_resources.wall_material.clone(),
+        transform,
         Collider::cuboid(dimentions.x / 2.0, dimentions.y / 2.0, dimentions.z / 2.0),
-        CollisionGroups::new(COLLISION_GROUP_LEVEL, COLLISION_GROUP_PROJECTILES),
-        RigidBody::Fixed,
-        LevelObject,
     ));
 
     // -Y wall
     let transform = Transform::from_translation(Vec3::new(0.0, -250.0, 5.0));
-    commands.spawn((
-        PbrBundle {
-            mesh,
-            material: level_resources.wall_material.clone(),
-            transform,
-            ..default()
-        },
+    commands.spawn(LevelObjectBundle::new(
+        mesh,
+        level_resources.wall_material.clone(),
+        transform,
         Collider::cuboid(dimentions.x / 2.0, dimentions.y / 2.0, dimentions.z / 2.0),
-        CollisionGroups::new(COLLISION_GROUP_LEVEL, COLLISION_GROUP_PROJECTILES),
-        RigidBody::Fixed,
-        LevelObject,
     ));
 }
 

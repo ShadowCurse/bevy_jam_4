@@ -3,7 +3,7 @@ use bevy_rapier3d::prelude::*;
 
 use crate::{
     weapons::{FreeFloatingWeapon, ShootEvent, WeaponAttackTimer},
-    COLLISION_GROUP_ENEMY, COLLISION_GROUP_LEVEL, COLLISION_GROUP_PLAYER,
+    COLLISION_GROUP_LEVEL, COLLISION_GROUP_PLAYER,
 };
 
 const PLAYER_WEAPON_DEFAULT_TRANSLATION: Vec3 = Vec3::new(0.0, -0.5, -1.4);
