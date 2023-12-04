@@ -2,14 +2,15 @@ use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 
 use crate::{
-    damage::Damage, COLLISION_GROUP_ENEMY, COLLISION_GROUP_LEVEL, COLLISION_GROUP_PLAYER,
-    COLLISION_GROUP_PROJECTILES,
+    damage::Damage, COLLISION_GROUP_ENEMY, COLLISION_GROUP_LEVEL, COLLISION_GROUP_PICKUP,
+    COLLISION_GROUP_PLAYER, COLLISION_GROUP_PROJECTILES,
 };
 
 pub mod pistol;
 
 const DEFAULT_PROJECTILE_SIZE: f32 = 0.2;
 
+const FREE_FLOATING_WEAPON_COLLIDER_RADIUS: f32 = 0.8;
 const FREE_FLOATING_WEAPON_ROTATION_SPEED: f32 = 0.4;
 const FREE_FLOATING_WEAPON_AMPLITUDE_MODIFIER: f32 = 0.5;
 const FREE_FLOATING_WEAPON_BOUNCE_SPEED_MODIFIER: f32 = 2.0;
@@ -88,6 +89,31 @@ pub struct WeaponAttackTimer {
 #[derive(Component)]
 pub struct FreeFloatingWeapon {
     pub original_translation: Vec3,
+}
+
+#[derive(Bundle)]
+pub struct FreeFloatingWeaponBundle {
+    pub collider: Collider,
+    pub collision_groups: CollisionGroups,
+    pub rigid_body: RigidBody,
+    pub sensor: Sensor,
+    pub active_events: ActiveEvents,
+    pub free_floating_weapon: FreeFloatingWeapon,
+}
+
+impl FreeFloatingWeaponBundle {
+    pub fn new(original_translation: Vec3) -> Self {
+        Self {
+            collider: Collider::ball(FREE_FLOATING_WEAPON_COLLIDER_RADIUS),
+            collision_groups: CollisionGroups::new(COLLISION_GROUP_PICKUP, COLLISION_GROUP_PLAYER),
+            rigid_body: RigidBody::Dynamic,
+            sensor: Sensor,
+            active_events: ActiveEvents::COLLISION_EVENTS,
+            free_floating_weapon: FreeFloatingWeapon {
+                original_translation,
+            },
+        }
+    }
 }
 
 impl WeaponAttackTimer {

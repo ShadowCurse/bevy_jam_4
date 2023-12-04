@@ -11,6 +11,7 @@ const COLLISION_GROUP_LEVEL: Group = Group::GROUP_1;
 const COLLISION_GROUP_PLAYER: Group = Group::GROUP_2;
 const COLLISION_GROUP_ENEMY: Group = Group::GROUP_3;
 const COLLISION_GROUP_PROJECTILES: Group = Group::GROUP_4;
+const COLLISION_GROUP_PICKUP: Group = Group::GROUP_5;
 
 fn main() {
     let mut app = App::new();

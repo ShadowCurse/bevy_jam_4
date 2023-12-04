@@ -4,7 +4,8 @@ use bevy_rapier3d::prelude::*;
 use crate::damage::Damage;
 
 use super::{
-    FreeFloatingWeapon, ProjectileBundle, ShootEvent, WeaponAttackTimer, WeaponsResources,
+    FreeFloatingWeapon, FreeFloatingWeaponBundle, ProjectileBundle, ShootEvent, WeaponAttackTimer,
+    WeaponsResources,
 };
 
 const PISTOL_AMMO: u32 = 10;
@@ -55,10 +56,15 @@ fn spawn(weapons_resources: Res<WeaponsResources>, mut commands: Commands) {
         .with_rotation(Quat::from_rotation_x(std::f32::consts::FRAC_PI_2));
     commands.spawn((
         PistolBundle::new(transform, weapons_resources.as_ref()),
-        Collider::ball(0.6),
-        FreeFloatingWeapon {
-            original_translation: translation,
-        },
+        FreeFloatingWeaponBundle::new(translation),
+    ));
+
+    let translation = Vec3::new(10.0, 30.0, 5.0);
+    let transform = Transform::from_translation(translation)
+        .with_rotation(Quat::from_rotation_x(std::f32::consts::FRAC_PI_2));
+    commands.spawn((
+        PistolBundle::new(transform, weapons_resources.as_ref()),
+        FreeFloatingWeaponBundle::new(translation),
     ));
 }
 

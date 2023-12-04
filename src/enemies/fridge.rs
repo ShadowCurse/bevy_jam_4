@@ -5,7 +5,8 @@ use crate::{
     damage::{Health, KillEvent},
     player::Player,
     weapons::{
-        pistol::PistolBundle, FreeFloatingWeapon, ShootEvent, WeaponAttackTimer, WeaponsResources,
+        pistol::PistolBundle, FreeFloatingWeapon, FreeFloatingWeaponBundle, ShootEvent,
+        WeaponAttackTimer, WeaponsResources,
     },
 };
 
@@ -207,13 +208,7 @@ fn fridge_die(
                         .get_entity(weapon)
                         .unwrap()
                         .remove::<FridgeWeapon>()
-                        .insert((
-                            Collider::ball(0.6),
-                            Sensor,
-                            FreeFloatingWeapon {
-                                original_translation: fridge_transform.translation,
-                            },
-                        ));
+                        .insert(FreeFloatingWeaponBundle::new(fridge_transform.translation));
                 }
             }
 

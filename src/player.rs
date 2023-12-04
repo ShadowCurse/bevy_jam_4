@@ -1,9 +1,9 @@
 use bevy::{input::mouse::MouseMotion, prelude::*};
-use bevy_rapier3d::prelude::*;
+use bevy_rapier3d::{prelude::*, rapier::geometry::CollisionEventFlags};
 
 use crate::{
-    weapons::{FreeFloatingWeapon, ShootEvent, WeaponAttackTimer},
-    COLLISION_GROUP_LEVEL, COLLISION_GROUP_PLAYER,
+    weapons::{FreeFloatingWeapon, FreeFloatingWeaponBundle, ShootEvent, WeaponAttackTimer},
+    COLLISION_GROUP_LEVEL, COLLISION_GROUP_PICKUP, COLLISION_GROUP_PLAYER,
 };
 
 const PLAYER_WEAPON_DEFAULT_TRANSLATION: Vec3 = Vec3::new(0.0, -0.5, -1.4);
@@ -74,7 +74,10 @@ fn spawn(mut commands: Commands) {
             TransformBundle::from_transform(Transform::from_translation(Vec3::new(0.0, 0.0, 5.0))),
             RigidBody::KinematicPositionBased,
             Collider::capsule(Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 5.0), 2.0),
-            CollisionGroups::new(COLLISION_GROUP_PLAYER, COLLISION_GROUP_LEVEL),
+            CollisionGroups::new(
+                COLLISION_GROUP_PLAYER,
+                COLLISION_GROUP_LEVEL | COLLISION_GROUP_PICKUP,
+            ),
             KinematicCharacterController {
                 up: Vec3::Z,
                 offset: CharacterLength::Relative(0.1),
@@ -120,11 +123,11 @@ fn spawn(mut commands: Commands) {
 }
 
 fn player_pick_up_weapon(
-    rapier_context: Res<RapierContext>,
     player: Query<Entity, With<Player>>,
     player_camera: Query<Entity, With<PlayerCamera>>,
-    weapons: Query<Entity, With<WeaponAttackTimer>>,
+    weapons: Query<Entity, With<FreeFloatingWeapon>>,
     mut commands: Commands,
+    mut collision_events: EventReader<CollisionEvent>,
 ) {
     let Ok(player) = player.get_single() else {
         return;
@@ -134,23 +137,45 @@ fn player_pick_up_weapon(
         return;
     };
 
-    for weapon in weapons.iter() {
-        for contact_pair in rapier_context.contacts_with(weapon) {
-            if contact_pair.collider1() == player || contact_pair.collider2() == player {
-                commands.get_entity(camera).unwrap().add_child(weapon);
-                commands
-                    .get_entity(weapon)
-                    .unwrap()
-                    .insert(PlayerWeapon {
-                        default_translation: PLAYER_WEAPON_DEFAULT_TRANSLATION,
-                        bounce_continue: false,
-                        bounce_progress: 0.0,
-                        bounce_speed: 4.0,
-                        bounce_amplitude: 0.08,
-                    })
-                    .remove::<(Collider, FreeFloatingWeapon)>();
-            }
+    for collision_event in collision_events.read() {
+        let (collider_1, collider_2, flags) = match collision_event {
+            CollisionEvent::Started(c1, c2, f) => (c1, c2, f),
+            CollisionEvent::Stopped(c1, c2, f) => (c1, c2, f),
+        };
+
+        if flags.contains(CollisionEventFlags::REMOVED)
+            || !flags.contains(CollisionEventFlags::SENSOR)
+        {
+            return;
         }
+        let weapon = if collider_1 == &player {
+            if let Ok(w) = weapons.get(*collider_2) {
+                w
+            } else {
+                continue;
+            }
+        } else if collider_2 == &player {
+            if let Ok(w) = weapons.get(*collider_1) {
+                w
+            } else {
+                continue;
+            }
+        } else {
+            continue;
+        };
+
+        commands.get_entity(camera).unwrap().add_child(weapon);
+        commands
+            .get_entity(weapon)
+            .unwrap()
+            .insert(PlayerWeapon {
+                default_translation: PLAYER_WEAPON_DEFAULT_TRANSLATION,
+                bounce_continue: false,
+                bounce_progress: 0.0,
+                bounce_speed: 4.0,
+                bounce_amplitude: 0.08,
+            })
+            .remove::<FreeFloatingWeaponBundle>();
     }
 }
 
