@@ -5,7 +5,7 @@ use crate::damage::Damage;
 
 use super::{FreeFloatingWeapon, Projectile, ShootEvent, WeaponAttackTimer, WeaponsResources};
 
-const PISTOL_PROJECTILE_VELOCITY: f32 = 10.0;
+const PISTOL_PROJECTILE_VELOCITY: f32 = 500.0;
 const PISTOL_PROJECTILE_OFFSET_SCALE: f32 = 2.0;
 const PISTOL_PROJECTILE_SIZE: f32 = 0.3;
 const PISTOL_AMMO: u32 = 10;
@@ -72,8 +72,9 @@ fn shoot_pistol(
             // spawn projectiles
             commands.spawn((
                 TransformBundle::from_transform(Transform::from_translation(translation)),
-                RigidBody::KinematicVelocityBased,
+                RigidBody::Dynamic,
                 Collider::ball(PISTOL_PROJECTILE_SIZE),
+                ActiveEvents::COLLISION_EVENTS,
                 Velocity {
                     linvel: e.direction * PISTOL_PROJECTILE_VELOCITY,
                     ..default()

@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use bevy_rapier3d::prelude::*;
+use bevy_rapier3d::{prelude::*, rapier::geometry::CollisionEventFlags};
 
 use crate::weapons::Projectile;
 
@@ -113,20 +113,26 @@ fn generate_level(
 }
 
 fn collision_level_object_projectiles(
-    rapier_context: Res<RapierContext>,
-    projectiles: Query<Entity, With<Projectile>>,
     level_objects: Query<Entity, With<LevelObject>>,
     mut commands: Commands,
+    mut collision_events: EventReader<CollisionEvent>,
 ) {
-    for projectile in projectiles.iter() {
-        for contact_pair in rapier_context.contacts_with(projectile) {
-            if level_objects
-                .get(contact_pair.collider1())
-                .or(level_objects.get(contact_pair.collider2()))
-                .is_ok()
-            {
-                commands.get_entity(projectile).unwrap().despawn();
-            }
+    for collision_event in collision_events.read() {
+        let (collider_1, collider_2, flags) = match collision_event {
+            CollisionEvent::Started(c1, c2, f) => (c1, c2, f),
+            CollisionEvent::Stopped(c1, c2, f) => (c1, c2, f),
+        };
+        if flags.contains(CollisionEventFlags::REMOVED) {
+            return;
+        }
+        let (contains_1, contains_2) = (
+            level_objects.contains(*collider_1),
+            level_objects.contains(*collider_2),
+        );
+        if contains_1 {
+            commands.get_entity(*collider_2).unwrap().despawn();
+        } else if contains_2 {
+            commands.get_entity(*collider_1).unwrap().despawn();
         }
     }
 }

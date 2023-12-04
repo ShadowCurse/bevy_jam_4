@@ -169,7 +169,8 @@ fn fridge_die(
                         let translation = fridge_transform.transform_point(pos);
                         let transform = Transform::from_translation(translation)
                             .with_rotation(fridge_transform.rotation);
-                        let linvel = (translation - fridge_transform.translation).normalize() * FRIDGE_DEATH_PULSE_STENGTH;
+                        let linvel = (translation - fridge_transform.translation).normalize()
+                            * FRIDGE_DEATH_PULSE_STENGTH;
                         commands.spawn((
                             PbrBundle {
                                 mesh: enemies_resources.fridge_part_mesh.clone(),
@@ -186,7 +187,7 @@ fn fridge_die(
                             Velocity {
                                 linvel,
                                 ..default()
-                            }
+                            },
                         ));
                     }
                 }
