@@ -5,8 +5,8 @@ use crate::{
     damage::{Health, KillEvent},
     player::Player,
     weapons::{
-        pistol::PistolBundle, FreeFloatingWeapon, FreeFloatingWeaponBundle, ShootEvent,
-        WeaponAttackTimer, WeaponsResources,
+        pistol::PistolBundle, FreeFloatingWeaponBundle, ShootEvent, WeaponAttackTimer,
+        WeaponsResources,
     },
 };
 

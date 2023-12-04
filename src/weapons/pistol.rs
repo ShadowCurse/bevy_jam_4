@@ -4,8 +4,7 @@ use bevy_rapier3d::prelude::*;
 use crate::damage::Damage;
 
 use super::{
-    FreeFloatingWeapon, FreeFloatingWeaponBundle, ProjectileBundle, ShootEvent, WeaponAttackTimer,
-    WeaponsResources,
+    FreeFloatingWeaponBundle, ProjectileBundle, ShootEvent, WeaponAttackTimer, WeaponsResources,
 };
 
 const PISTOL_AMMO: u32 = 10;
