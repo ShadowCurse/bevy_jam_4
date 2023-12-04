@@ -26,6 +26,7 @@ const FRIDGE_DEATH_GAP_Z: f32 = 0.3;
 const FRIDGE_DEATH_GAP_DELTA_X: f32 = FRIDGE_DEATH_GAP_X / FRIDGE_PARTS_X as f32;
 const FRIDGE_DEATH_GAP_DELTA_Y: f32 = FRIDGE_DEATH_GAP_Y / FRIDGE_PARTS_Y as f32;
 const FRIDGE_DEATH_GAP_DELTA_Z: f32 = FRIDGE_DEATH_GAP_Z / FRIDGE_PARTS_Z as f32;
+const FRIDGE_DEATH_PULSE_STENGTH: f32 = 0.8;
 
 const FRIDGE_HEALTH: i32 = 100;
 const FRIDGE_SPEED: f32 = 5.0;
@@ -165,10 +166,10 @@ fn fridge_die(
                             // to make all parts be above ground
                             + FRIDGE_DIMENTION_Z / 2.0;
                         let pos = Vec3::new(x_pos, y_pos, z_pos);
-                        println!("spawning part as pos: {pos:?}");
                         let translation = fridge_transform.transform_point(pos);
                         let transform = Transform::from_translation(translation)
                             .with_rotation(fridge_transform.rotation);
+                        let linvel = (translation - fridge_transform.translation).normalize() * FRIDGE_DEATH_PULSE_STENGTH;
                         commands.spawn((
                             PbrBundle {
                                 mesh: enemies_resources.fridge_part_mesh.clone(),
@@ -182,6 +183,10 @@ fn fridge_die(
                                 FRIDGE_PART_DIMENTION_Z / 2.0,
                             ),
                             RigidBody::Dynamic,
+                            Velocity {
+                                linvel,
+                                ..default()
+                            }
                         ));
                     }
                 }
@@ -201,6 +206,7 @@ fn fridge_die(
                         .remove::<FridgeWeapon>()
                         .insert((
                             Collider::ball(0.6),
+                            Sensor,
                             FreeFloatingWeapon {
                                 original_translation: fridge_transform.translation,
                             },
