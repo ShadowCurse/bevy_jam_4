@@ -1,19 +1,17 @@
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 
-use crate::{
-    damage::Damage, COLLISION_GROUP_ENEMY, COLLISION_GROUP_LEVEL, COLLISION_GROUP_PLAYER,
-    COLLISION_GROUP_PROJECTILES,
+use crate::damage::Damage;
+
+use super::{
+    FreeFloatingWeapon, ProjectileBundle, ShootEvent, WeaponAttackTimer, WeaponsResources,
 };
 
-use super::{FreeFloatingWeapon, Projectile, ShootEvent, WeaponAttackTimer, WeaponsResources};
-
-const PISTOL_PROJECTILE_VELOCITY: f32 = 500.0;
-const PISTOL_PROJECTILE_OFFSET_SCALE: f32 = 2.0;
-const PISTOL_PROJECTILE_SIZE: f32 = 0.3;
 const PISTOL_AMMO: u32 = 10;
 const PISTOL_DAMAGE: i32 = 10;
 const PISTOL_ATTACK_SPEED: f32 = 1.0 / 4.0;
+const PISTOL_PROJECTILE_VELOCITY: f32 = 500.0;
+const PISTOL_PROJECTILE_OFFSET_SCALE: f32 = 2.0;
 
 pub struct PistolPlugin;
 
@@ -66,6 +64,7 @@ fn spawn(weapons_resources: Res<WeaponsResources>, mut commands: Commands) {
 
 fn shoot_pistol(
     pistols: Query<&Pistol>,
+    weapons_resources: Res<WeaponsResources>,
     mut commands: Commands,
     mut shoot_event: EventReader<ShootEvent>,
 ) {
@@ -73,24 +72,22 @@ fn shoot_pistol(
         if pistols.get(e.weapon_entity).is_ok() {
             let translation = e.weapon_translation + e.direction * PISTOL_PROJECTILE_OFFSET_SCALE;
             // spawn projectiles
-            commands.spawn((
-                TransformBundle::from_transform(Transform::from_translation(translation)),
-                RigidBody::Dynamic,
-                Collider::ball(PISTOL_PROJECTILE_SIZE),
-                CollisionGroups::new(
-                    COLLISION_GROUP_PROJECTILES,
-                    COLLISION_GROUP_LEVEL | COLLISION_GROUP_PLAYER | COLLISION_GROUP_ENEMY,
-                ),
-                ActiveEvents::COLLISION_EVENTS,
-                Velocity {
+            commands.spawn(ProjectileBundle {
+                pbr_bundle: PbrBundle {
+                    mesh: weapons_resources.projectile_mesh.clone(),
+                    material: weapons_resources.projectile_material.clone(),
+                    transform: Transform::from_translation(translation),
+                    ..default()
+                },
+                velocity: Velocity {
                     linvel: e.direction * PISTOL_PROJECTILE_VELOCITY,
                     ..default()
                 },
-                Projectile,
-                Damage {
+                damage: Damage {
                     damage: PISTOL_DAMAGE,
                 },
-            ));
+                ..default()
+            });
             // start shooting animation
         }
     }

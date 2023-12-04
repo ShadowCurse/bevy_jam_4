@@ -1,6 +1,14 @@
 use bevy::prelude::*;
+use bevy_rapier3d::prelude::*;
+
+use crate::{
+    damage::Damage, COLLISION_GROUP_ENEMY, COLLISION_GROUP_LEVEL, COLLISION_GROUP_PLAYER,
+    COLLISION_GROUP_PROJECTILES,
+};
 
 pub mod pistol;
+
+const DEFAULT_PROJECTILE_SIZE: f32 = 0.2;
 
 const FREE_FLOATING_WEAPON_ROTATION_SPEED: f32 = 0.4;
 const FREE_FLOATING_WEAPON_AMPLITUDE_MODIFIER: f32 = 0.5;
@@ -26,12 +34,44 @@ impl Plugin for WeaponsPlugin {
 
 #[derive(Resource)]
 pub struct WeaponsResources {
+    projectile_mesh: Handle<Mesh>,
+    projectile_material: Handle<StandardMaterial>,
     pistol_mesh: Handle<Mesh>,
     pistol_material: Handle<StandardMaterial>,
 }
 
 #[derive(Component)]
 pub struct Projectile;
+
+#[derive(Bundle)]
+pub struct ProjectileBundle {
+    pbr_bundle: PbrBundle,
+    rigid_body: RigidBody,
+    collider: Collider,
+    collision_groups: CollisionGroups,
+    active_events: ActiveEvents,
+    velocity: Velocity,
+    projectile: Projectile,
+    damage: Damage,
+}
+
+impl Default for ProjectileBundle {
+    fn default() -> Self {
+        Self {
+            pbr_bundle: PbrBundle::default(),
+            rigid_body: RigidBody::Dynamic,
+            collider: Collider::ball(DEFAULT_PROJECTILE_SIZE),
+            collision_groups: CollisionGroups::new(
+                COLLISION_GROUP_PROJECTILES,
+                COLLISION_GROUP_LEVEL | COLLISION_GROUP_PLAYER | COLLISION_GROUP_ENEMY,
+            ),
+            active_events: ActiveEvents::COLLISION_EVENTS,
+            velocity: Velocity::default(),
+            projectile: Projectile,
+            damage: Damage::default(),
+        }
+    }
+}
 
 #[derive(Event)]
 pub struct ShootEvent {
@@ -66,11 +106,21 @@ fn init_resources(
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
 ) {
+    let projectile_mesh = meshes.add(
+        shape::UVSphere {
+            radius: DEFAULT_PROJECTILE_SIZE,
+            ..default()
+        }
+        .into(),
+    );
+    let projectile_material = materials.add(Color::GOLD.into());
     // forward = -Z
     let pistol_mesh = meshes.add(shape::Box::new(0.1, 0.2, 1.5).into());
     let pistol_material = materials.add(Color::GREEN.into());
 
     commands.insert_resource(WeaponsResources {
+        projectile_mesh,
+        projectile_material,
         pistol_mesh,
         pistol_material,
     });

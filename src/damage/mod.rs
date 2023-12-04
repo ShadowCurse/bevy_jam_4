@@ -17,7 +17,7 @@ pub struct KillEvent {
     pub entity: Entity,
 }
 
-#[derive(Component)]
+#[derive(Default, Component)]
 pub struct Damage {
     pub damage: i32,
 }
