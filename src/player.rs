@@ -103,7 +103,7 @@ pub fn spawn_player(commands: &mut Commands, transform: Transform) {
                 // ),
                 PlayerCamera {
                     default_translation: Vec3::new(0.0, 0.0, 2.0),
-                    rotation_speed: 5.0,
+                    rotation_speed: 1.0,
 
                     bounce_continue: false,
                     bounce_progress: 0.0,
@@ -327,7 +327,7 @@ fn player_move(
         let shape_vel = movement;
         let max_toi = 10.0;
         let filter = QueryFilter {
-            flags: QueryFilterFlags::EXCLUDE_SENSORS,
+            flags: QueryFilterFlags::EXCLUDE_SENSORS | QueryFilterFlags::EXCLUDE_DYNAMIC,
             groups: Some(*collision_groups),
             exclude_collider: Some(player),
             ..default()
