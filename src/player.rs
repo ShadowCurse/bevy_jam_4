@@ -125,10 +125,16 @@ pub fn spawn_player(commands: &mut Commands, transform: Transform) {
 fn player_pick_up_weapon(
     player: Query<Entity, With<Player>>,
     player_camera: Query<Entity, With<PlayerCamera>>,
+    player_weapon: Query<Entity, With<PlayerWeapon>>,
     weapons: Query<Entity, With<FreeFloatingWeapon>>,
     mut commands: Commands,
     mut collision_events: EventReader<CollisionEvent>,
 ) {
+    // if there is already a weapon, do nothing
+    if player_weapon.get_single().is_ok() {
+        return;
+    }
+
     let Ok(player) = player.get_single() else {
         return;
     };
