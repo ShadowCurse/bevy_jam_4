@@ -72,11 +72,13 @@ pub fn spawn_player(commands: &mut Commands, transform: Transform) {
     let id = commands
         .spawn((
             TransformBundle::from_transform(transform),
+            RigidBody::KinematicPositionBased,
             Collider::capsule(Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 5.0), 2.0),
             CollisionGroups::new(
                 COLLISION_GROUP_PLAYER,
                 COLLISION_GROUP_LEVEL | COLLISION_GROUP_PICKUP,
             ),
+            ActiveCollisionTypes::KINEMATIC_STATIC | ActiveCollisionTypes::DYNAMIC_KINEMATIC,
             Player {
                 acceleration: 50.0,
                 slow_down_rade: 5.0,
@@ -324,6 +326,7 @@ fn player_move(
         let shape_vel = movement;
         let max_toi = 10.0;
         let filter = QueryFilter {
+            flags: QueryFilterFlags::EXCLUDE_SENSORS,
             groups: Some(*collision_groups),
             exclude_collider: Some(player),
             ..default()

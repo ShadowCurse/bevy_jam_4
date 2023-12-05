@@ -95,7 +95,6 @@ pub struct FreeFloatingWeapon {
 pub struct FreeFloatingWeaponBundle {
     pub collider: Collider,
     pub collision_groups: CollisionGroups,
-    pub rigid_body: RigidBody,
     pub sensor: Sensor,
     pub active_events: ActiveEvents,
     pub free_floating_weapon: FreeFloatingWeapon,
@@ -106,7 +105,6 @@ impl FreeFloatingWeaponBundle {
         Self {
             collider: Collider::ball(FREE_FLOATING_WEAPON_COLLIDER_RADIUS),
             collision_groups: CollisionGroups::new(COLLISION_GROUP_PICKUP, COLLISION_GROUP_PLAYER),
-            rigid_body: RigidBody::Dynamic,
             sensor: Sensor,
             active_events: ActiveEvents::COLLISION_EVENTS,
             free_floating_weapon: FreeFloatingWeapon {
