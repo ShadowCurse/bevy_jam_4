@@ -3,12 +3,16 @@ use bevy_rapier3d::{prelude::*, rapier::geometry::CollisionEventFlags};
 use rand::Rng;
 
 use crate::{
-    enemies::{fridge::spawn_fridge, EnemiesResources},
+    enemies::{fridge::spawn_fridge, EnemiesResources, Enemy},
     player::spawn_player,
-    weapons::{pistol::spawn_pistol, WeaponsResources},
+    weapons::{pistol::spawn_pistol, Projectile, WeaponsResources},
     COLLISION_GROUP_ENEMY, COLLISION_GROUP_LEVEL, COLLISION_GROUP_PLAYER,
     COLLISION_GROUP_PROJECTILES,
 };
+
+use self::portal::{Portal, PortalBundle, PortalType};
+
+mod portal;
 
 const LEVEL_SIZE: f32 = 200.0;
 const COLUMN_SIZE: f32 = 5.0;
@@ -24,14 +28,21 @@ pub struct LevelPlugin;
 
 impl Plugin for LevelPlugin {
     fn build(&self, app: &mut App) {
+        app.add_event::<LevelFinished>();
+        app.add_event::<LevelSwitch>();
+        app.add_plugins(portal::PortalPlugin);
         app.add_systems(Startup, init);
         app.add_systems(PostStartup, spawn_level);
-        app.add_systems(Update, collision_level_object_projectiles);
+        app.add_systems(
+            Update,
+            (
+                level_progress,
+                level_switch,
+                collision_level_object_projectiles,
+            ),
+        );
     }
 }
-
-#[derive(Component)]
-pub struct LevelObject;
 
 #[derive(Resource)]
 struct LevelResources {
@@ -40,8 +51,25 @@ struct LevelResources {
     column_mesh: Handle<Mesh>,
     column_material: Handle<StandardMaterial>,
     portal_mesh: Handle<Mesh>,
-    portal_material: Handle<StandardMaterial>,
+    portal_closed_material: Handle<StandardMaterial>,
+    portal_open_material: Handle<StandardMaterial>,
 }
+
+#[derive(Resource)]
+struct LevelState {
+    finished: bool,
+}
+
+#[derive(Event)]
+struct LevelFinished;
+
+#[derive(Event)]
+struct LevelSwitch {
+    exit_portal: Portal,
+}
+
+#[derive(Component)]
+pub struct LevelObject;
 
 #[derive(Bundle)]
 pub struct LevelObjectBundle {
@@ -91,20 +119,6 @@ impl LevelObjectBundle {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
-enum PortalType {
-    Top,
-    Bottom,
-    Left,
-    Right,
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Component)]
-struct Portal {
-    portal_type: PortalType,
-    grid_pox: usize,
-}
-
-#[derive(Clone, Copy, PartialEq, Eq)]
 enum CellType {
     Empty,
     Portal(Portal),
@@ -126,7 +140,8 @@ fn init(
     let column_material = materials.add(Color::DARK_GRAY.into());
 
     let portal_mesh = meshes.add(shape::Box::new(COLUMN_SIZE, COLUMN_SIZE, COLUMN_HIGHT).into());
-    let portal_material = materials.add(Color::BLUE.into());
+    let portal_closed_material = materials.add(Color::RED.into());
+    let portal_open_material = materials.add(Color::BLUE.into());
 
     commands.insert_resource(LevelResources {
         floor_mesh,
@@ -134,8 +149,11 @@ fn init(
         column_mesh,
         column_material,
         portal_mesh,
-        portal_material,
+        portal_closed_material,
+        portal_open_material,
     });
+
+    commands.insert_resource(LevelState { finished: false });
 }
 
 fn generate_level(previus_portal: Option<Portal>) -> [[CellType; GRID_SIZE]; GRID_SIZE] {
@@ -314,19 +332,13 @@ fn spawn_level(
                     ));
                 }
                 CellType::Portal(portal) => {
-                    commands.spawn((
-                        LevelObjectBundle::new(
-                            level_resources.portal_mesh.clone(),
-                            level_resources.portal_material.clone(),
-                            transform,
-                            Collider::cuboid(
-                                COLUMN_SIZE / 2.0,
-                                COLUMN_SIZE / 2.0,
-                                COLUMN_HIGHT / 2.0,
-                            ),
-                        ),
+                    commands.spawn((PortalBundle::new(
+                        level_resources.portal_mesh.clone(),
+                        level_resources.portal_closed_material.clone(),
+                        transform,
+                        Collider::cuboid(COLUMN_SIZE / 2.0, COLUMN_SIZE / 2.0, COLUMN_HIGHT / 2.0),
                         *portal,
-                    ));
+                    ),));
                 }
                 CellType::Weapon => {
                     spawn_pistol(weapons_resources.as_ref(), &mut commands, transform);
@@ -356,7 +368,26 @@ fn spawn_level(
     ));
 }
 
+fn level_progress(
+    enemies: Query<Entity, With<Enemy>>,
+    mut level_state: ResMut<LevelState>,
+    mut level_finished_events: EventWriter<LevelFinished>,
+) {
+    let remaining_enemies = enemies.iter().count();
+    if remaining_enemies == 0 && !level_state.finished {
+        level_state.finished = true;
+        level_finished_events.send(LevelFinished);
+    }
+}
+
+fn level_switch(mut level_switch_events: EventReader<LevelSwitch>) {
+    for e in level_switch_events.read() {
+        println!("exit portal: {:?} switching level", e.exit_portal);
+    }
+}
+
 fn collision_level_object_projectiles(
+    projectiles: Query<Entity, With<Projectile>>,
     level_objects: Query<Entity, With<LevelObject>>,
     mut commands: Commands,
     mut collision_events: EventReader<CollisionEvent>,
@@ -369,14 +400,22 @@ fn collision_level_object_projectiles(
         if flags.contains(CollisionEventFlags::REMOVED) {
             return;
         }
-        let (contains_1, contains_2) = (
-            level_objects.contains(*collider_1),
-            level_objects.contains(*collider_2),
-        );
-        if contains_1 {
-            commands.get_entity(*collider_2).unwrap().despawn();
-        } else if contains_2 {
-            commands.get_entity(*collider_1).unwrap().despawn();
-        }
+
+        let projectile = if let Ok(p) = projectiles.get(*collider_1) {
+            if level_objects.get(*collider_2).is_ok() {
+                p
+            } else {
+                continue;
+            }
+        } else if let Ok(p) = projectiles.get(*collider_2) {
+            if level_objects.get(*collider_1).is_ok() {
+                p
+            } else {
+                continue;
+            }
+        } else {
+            continue;
+        };
+        commands.get_entity(projectile).unwrap().despawn();
     }
 }
