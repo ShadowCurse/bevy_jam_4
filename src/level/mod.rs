@@ -237,7 +237,7 @@ fn generate_level(previus_door: Option<Door>) -> [[CellType; GRID_SIZE]; GRID_SI
         }
     } else {
         // if it is the first level place at the bottom
-        grid[GRID_SIZE - 2][door_bottom_pos] = CellType::Player;
+        grid[1][door_top_pos] = CellType::Player;
     }
     grid[0][door_top_pos] = CellType::Door(Door {
         door_type: DoorType::Top,
@@ -371,8 +371,40 @@ fn spawn_level(
     commands: &mut Commands,
     level_translation: Vec3,
     previus_door: Option<Door>,
+    tutorial_level: bool,
 ) -> Vec3 {
-    let grid = generate_level(previus_door);
+    let mut grid = generate_level(previus_door);
+
+    if tutorial_level {
+        let mut player_pos = (0, 0);
+
+        // remove all content from the level
+        for y in 1..GRID_SIZE - 1 {
+            for x in 1..GRID_SIZE - 1 {
+                if grid[y][x] != CellType::Player {
+                    grid[y][x] = CellType::Empty;
+                } else {
+                    player_pos = (y, x);
+                }
+            }
+        }
+
+        // move player back
+        let new_player_pos = (player_pos.0 + 3, player_pos.1);
+        grid[player_pos.0][player_pos.1] = CellType::Empty;
+        grid[new_player_pos.0][new_player_pos.1] = CellType::Player;
+
+        // place walls around player
+        for y in 0..GRID_SIZE {
+            grid[y][new_player_pos.1 - 2] = CellType::Column;
+        }
+        for y in 0..GRID_SIZE {
+            grid[y][new_player_pos.1 + 2] = CellType::Column;
+        }
+        for x in 0..GRID_SIZE {
+            grid[new_player_pos.0 + 2][x] = CellType::Column;
+        }
+    }
 
     let level_translation = match previus_door {
         Some(door) => match door.door_type {
@@ -443,6 +475,7 @@ fn spawn_initial_level(
         &mut commands,
         level_state.translation,
         None,
+        true,
     );
 }
 
@@ -482,6 +515,7 @@ fn level_switch(
             &mut commands,
             level_state.translation,
             Some(event.exit_door),
+            false,
         );
 
         level_state.translation = new_translation;
