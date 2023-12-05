@@ -35,11 +35,10 @@ pub struct Enemy;
 #[derive(Bundle)]
 pub struct EnemyBundle {
     pbr: PbrBundle,
-    controller: KinematicCharacterController,
+    rigid_body: RigidBody,
     collider: Collider,
     collision_groups: CollisionGroups,
-    rigid_body: RigidBody,
-    velocity: Velocity,
+    controller: KinematicCharacterController,
     enemy: Enemy,
 }
 
@@ -52,18 +51,17 @@ impl EnemyBundle {
                 transform,
                 ..default()
             },
+            rigid_body: RigidBody::KinematicPositionBased,
+            collider: Collider::capsule(Vec3::new(0.0, 0.0, -3.5), Vec3::new(0.0, 0.0, 3.5), 2.0),
+            collision_groups: CollisionGroups::new(
+                COLLISION_GROUP_ENEMY,
+                COLLISION_GROUP_LEVEL | COLLISION_GROUP_PROJECTILES,
+            ),
             controller: KinematicCharacterController {
                 up: Vec3::Z,
                 offset: CharacterLength::Relative(0.1),
                 ..default()
             },
-            collider: Collider::capsule(Vec3::new(0.0, 0.0, -3.5), Vec3::new(0.0, 0.0, 3.5), 2.0),
-            collision_groups: CollisionGroups::new(
-                COLLISION_GROUP_ENEMY,
-                COLLISION_GROUP_LEVEL | COLLISION_GROUP_PLAYER | COLLISION_GROUP_PROJECTILES,
-            ),
-            rigid_body: RigidBody::KinematicPositionBased,
-            velocity: Velocity::default(),
             enemy: Enemy,
         }
     }
