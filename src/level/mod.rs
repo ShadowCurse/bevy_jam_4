@@ -203,16 +203,16 @@ fn generate_level(previus_door: Option<Door>) -> [[CellType; GRID_SIZE]; GRID_SI
     });
 
     // generate doors
-    let mut door_top_pos = rng.gen_range(1..GRID_SIZE - 1);
+    let mut door_top_pos = rng.gen_range(2..GRID_SIZE - 2);
     let mut door_top_state = DoorState::Locked;
 
-    let mut door_bottom_pos = rng.gen_range(1..GRID_SIZE - 1);
+    let mut door_bottom_pos = rng.gen_range(2..GRID_SIZE - 2);
     let mut door_bottom_state = DoorState::Locked;
 
-    let mut door_left_pos = rng.gen_range(1..GRID_SIZE - 1);
+    let mut door_left_pos = rng.gen_range(2..GRID_SIZE - 2);
     let mut door_left_state = DoorState::Locked;
 
-    let mut door_right_pos = rng.gen_range(1..GRID_SIZE - 1);
+    let mut door_right_pos = rng.gen_range(2..GRID_SIZE - 2);
     let mut door_right_state = DoorState::Locked;
 
     // check prevous exit and place player at mirrored door
