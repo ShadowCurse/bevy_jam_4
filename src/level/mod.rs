@@ -6,7 +6,8 @@ use crate::{
     enemies::{fridge::spawn_fridge, EnemiesResources},
     player::spawn_player,
     weapons::{pistol::spawn_pistol, WeaponsResources},
-    COLLISION_GROUP_ENEMY, COLLISION_GROUP_LEVEL, COLLISION_GROUP_PROJECTILES,
+    COLLISION_GROUP_ENEMY, COLLISION_GROUP_LEVEL, COLLISION_GROUP_PLAYER,
+    COLLISION_GROUP_PROJECTILES,
 };
 
 const LEVEL_SIZE: f32 = 200.0;
@@ -59,7 +60,7 @@ impl Default for LevelObjectBundle {
             collider: Collider::default(),
             collision_groups: CollisionGroups::new(
                 COLLISION_GROUP_LEVEL,
-                COLLISION_GROUP_ENEMY | COLLISION_GROUP_PROJECTILES,
+                COLLISION_GROUP_ENEMY | COLLISION_GROUP_PLAYER | COLLISION_GROUP_PROJECTILES,
             ),
             active_collision_types: ActiveCollisionTypes::default()
                 | ActiveCollisionTypes::KINEMATIC_STATIC,

@@ -69,22 +69,16 @@ pub struct PlayerWeapon {
 }
 
 pub fn spawn_player(commands: &mut Commands, transform: Transform) {
-    commands
+    let id = commands
         .spawn((
             TransformBundle::from_transform(transform),
-            RigidBody::KinematicPositionBased,
             Collider::capsule(Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 5.0), 2.0),
             CollisionGroups::new(
                 COLLISION_GROUP_PLAYER,
                 COLLISION_GROUP_LEVEL | COLLISION_GROUP_PICKUP,
             ),
-            KinematicCharacterController {
-                up: Vec3::Z,
-                offset: CharacterLength::Relative(0.1),
-                ..default()
-            },
             Player {
-                acceleration: 5.0,
+                acceleration: 50.0,
                 slow_down_rade: 5.0,
                 max_movement_speed_squared: 40.0,
             },
@@ -117,9 +111,11 @@ pub fn spawn_player(commands: &mut Commands, transform: Transform) {
                     bounce_amplitude_modifier_speed: 1.0,
                     bounce_amplitude_modifier_max: 2.0,
                 },
-                Collider::ball(0.5),
             ));
-        });
+        })
+        .id();
+
+    println!("player id: {id:?}");
 }
 
 fn player_pick_up_weapon(
@@ -301,17 +297,61 @@ fn player_update(
 
 fn player_move(
     time: Res<Time>,
+    rapier_context: Res<RapierContext>,
     mut player_components: Query<
-        (&PlayerVelocity, &mut KinematicCharacterController),
+        (
+            Entity,
+            &Collider,
+            &CollisionGroups,
+            &PlayerVelocity,
+            &mut Transform,
+        ),
         With<Player>,
     >,
 ) {
-    let Ok((velocity, mut controller)) = player_components.get_single_mut() else {
+    let Ok((player, collider, collision_groups, velocity, mut transform)) =
+        player_components.get_single_mut()
+    else {
         return;
     };
 
-    let movement = velocity.velocity * time.delta_seconds();
-    controller.translation = Some(movement);
+    let mut movement = velocity.velocity * time.delta_seconds();
+
+    for i in 0..4 {
+        let shape = collider;
+        let shape_pos = transform.translation + movement;
+        let shape_rot = transform.rotation;
+        let shape_vel = movement;
+        let max_toi = 10.0;
+        let filter = QueryFilter {
+            groups: Some(*collision_groups),
+            exclude_collider: Some(player),
+            ..default()
+        };
+
+        if let Some((_, hit)) = rapier_context.cast_shape(
+            shape_pos, shape_rot, shape_vel, shape, max_toi, true, filter,
+        ) {
+            match hit.status {
+                TOIStatus::Converged => {
+                    if i == 3 {
+                        movement = Vec3::ZERO;
+                        break;
+                    }
+                    // hit.normal1: indicates the normal at the contact point hit.witness1,
+                    // expressed in the local-space of the collider hit by the shape.
+                    let wall_parrallel = hit.details.unwrap().normal1.cross(Vec3::Z);
+                    movement = wall_parrallel * wall_parrallel.dot(movement);
+                }
+                TOIStatus::Penetrating => {
+                    return;
+                }
+                _ => {}
+            }
+        }
+    }
+
+    transform.translation += movement;
 }
 
 // TODO make better
