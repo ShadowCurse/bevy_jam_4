@@ -38,7 +38,6 @@ pub struct FridgePlugin;
 
 impl Plugin for FridgePlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(PostStartup, spawn);
         app.add_systems(Update, (fridge_move, fridge_shoot, fridge_die));
     }
 }
@@ -73,20 +72,19 @@ impl FridgeBuldle {
     }
 }
 
-fn spawn(
-    enemies_resources: Res<EnemiesResources>,
-    weapons_resources: Res<WeaponsResources>,
-    mut commands: Commands,
+pub fn spawn_fridge(
+    enemies_resources: &EnemiesResources,
+    weapons_resources: &WeaponsResources,
+    commands: &mut Commands,
+    transform: Transform,
 ) {
-    let translation = Vec3::new(-20.0, 0.0, 5.0);
-    let transform = Transform::from_translation(translation);
     let weapon_transform = Transform::from_translation(FRIDGE_WEAPON_OFFSET).with_rotation(
         Quat::from_rotation_y(std::f32::consts::FRAC_PI_2)
             * Quat::from_rotation_z(std::f32::consts::FRAC_PI_2),
     );
     let weapon = commands
         .spawn((
-            PistolBundle::new(weapon_transform, weapons_resources.as_ref()),
+            PistolBundle::new(weapon_transform, weapons_resources),
             FridgeWeapon,
         ))
         .id();
@@ -96,7 +94,7 @@ fn spawn(
             FRIDGE_HEALTH,
             Some(weapon),
             transform,
-            enemies_resources.as_ref(),
+            enemies_resources,
         ))
         .add_child(weapon);
 }

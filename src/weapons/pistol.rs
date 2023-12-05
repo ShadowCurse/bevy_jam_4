@@ -17,7 +17,6 @@ pub struct PistolPlugin;
 
 impl Plugin for PistolPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(PostStartup, (spawn,));
         app.add_systems(Update, (shoot_pistol,));
     }
 }
@@ -49,21 +48,15 @@ impl PistolBundle {
     }
 }
 
-fn spawn(weapons_resources: Res<WeaponsResources>, mut commands: Commands) {
-    let translation = Vec3::new(10.0, 10.0, 5.0);
-    let transform = Transform::from_translation(translation)
-        .with_rotation(Quat::from_rotation_x(std::f32::consts::FRAC_PI_2));
+pub fn spawn_pistol(
+    weapons_resources: &WeaponsResources,
+    commands: &mut Commands,
+    transform: Transform,
+) {
+    let transform = transform.with_rotation(Quat::from_rotation_x(std::f32::consts::FRAC_PI_2));
     commands.spawn((
-        PistolBundle::new(transform, weapons_resources.as_ref()),
-        FreeFloatingWeaponBundle::new(translation),
-    ));
-
-    let translation = Vec3::new(10.0, 30.0, 5.0);
-    let transform = Transform::from_translation(translation)
-        .with_rotation(Quat::from_rotation_x(std::f32::consts::FRAC_PI_2));
-    commands.spawn((
-        PistolBundle::new(transform, weapons_resources.as_ref()),
-        FreeFloatingWeaponBundle::new(translation),
+        PistolBundle::new(transform, weapons_resources),
+        FreeFloatingWeaponBundle::new(transform.translation),
     ));
 }
 

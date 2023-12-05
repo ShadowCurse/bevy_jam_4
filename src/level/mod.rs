@@ -2,7 +2,12 @@ use bevy::prelude::*;
 use bevy_rapier3d::{prelude::*, rapier::geometry::CollisionEventFlags};
 use rand::Rng;
 
-use crate::{COLLISION_GROUP_ENEMY, COLLISION_GROUP_LEVEL, COLLISION_GROUP_PROJECTILES};
+use crate::{
+    enemies::{fridge::spawn_fridge, EnemiesResources},
+    player::spawn_player,
+    weapons::{pistol::spawn_pistol, WeaponsResources},
+    COLLISION_GROUP_ENEMY, COLLISION_GROUP_LEVEL, COLLISION_GROUP_PROJECTILES,
+};
 
 const LEVEL_SIZE: f32 = 200.0;
 const COLUMN_SIZE: f32 = 5.0;
@@ -10,6 +15,9 @@ const COLUMN_HIGHT: f32 = 10.0;
 const GRID_SIZE: usize = (LEVEL_SIZE / COLUMN_SIZE) as usize;
 const FILL_AMOUNT: f32 = 0.02;
 const STRIP_LENGTH: u32 = 3;
+
+const LEVEL_WEAPON_SPAWNS: u32 = 4;
+const LEVEL_ENEMIES: u32 = 2;
 
 pub struct LevelPlugin;
 
@@ -82,10 +90,27 @@ impl LevelObjectBundle {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
+enum PortalType {
+    Top,
+    Bottom,
+    Left,
+    Right,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Component)]
+struct Portal {
+    portal_type: PortalType,
+    grid_pox: usize,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
 enum CellType {
     Empty,
-    Portal,
+    Portal(Portal),
     Column,
+    Weapon,
+    Enemy,
+    Player,
 }
 
 fn init(
@@ -112,35 +137,75 @@ fn init(
     });
 }
 
-fn generate_level() -> [[CellType; GRID_SIZE]; GRID_SIZE] {
+fn generate_level(previus_portal: Option<Portal>) -> [[CellType; GRID_SIZE]; GRID_SIZE] {
     let mut rng = rand::thread_rng();
 
     let mut grid = [[CellType::Empty; GRID_SIZE]; GRID_SIZE];
 
-    let random_exit_top = rng.gen_range(1..GRID_SIZE - 1);
+    // generate portals
+    let mut random_exit_top = rng.gen_range(1..GRID_SIZE - 1);
+    let mut random_exit_bottom = rng.gen_range(1..GRID_SIZE - 1);
+    let mut random_exit_left = rng.gen_range(1..GRID_SIZE - 1);
+    let mut random_exit_right = rng.gen_range(1..GRID_SIZE - 1);
+
+    // check prevous exit and place player at mirrored portal
+    if let Some(portal) = previus_portal {
+        match portal.portal_type {
+            PortalType::Top => {
+                random_exit_bottom = portal.grid_pox;
+                grid[GRID_SIZE - 2][random_exit_bottom] = CellType::Player;
+            }
+            PortalType::Bottom => {
+                random_exit_top = portal.grid_pox;
+                grid[1][random_exit_top] = CellType::Player;
+            }
+            PortalType::Left => {
+                random_exit_right = portal.grid_pox;
+                grid[random_exit_right][GRID_SIZE - 2] = CellType::Player;
+            }
+            PortalType::Right => {
+                random_exit_left = portal.grid_pox;
+                grid[random_exit_left][1] = CellType::Player;
+            }
+        }
+    } else {
+        // if it is the first level place at the bottom
+        grid[GRID_SIZE - 2][random_exit_bottom] = CellType::Player;
+    }
+
     for x in 0..GRID_SIZE {
         grid[0][x] = CellType::Column;
     }
-    grid[0][random_exit_top] = CellType::Portal;
+    grid[0][random_exit_top] = CellType::Portal(Portal {
+        portal_type: PortalType::Top,
+        grid_pox: random_exit_top,
+    });
 
-    let random_exit_bot = rng.gen_range(1..GRID_SIZE - 1);
     for x in 0..GRID_SIZE {
         grid[GRID_SIZE - 1][x] = CellType::Column;
     }
-    grid[GRID_SIZE - 1][random_exit_bot] = CellType::Portal;
+    grid[GRID_SIZE - 1][random_exit_bottom] = CellType::Portal(Portal {
+        portal_type: PortalType::Bottom,
+        grid_pox: random_exit_bottom,
+    });
 
-    let random_exit_left = rng.gen_range(1..GRID_SIZE - 1);
     (0..GRID_SIZE).for_each(|y| {
         grid[y][0] = CellType::Column;
     });
-    grid[random_exit_left][0] = CellType::Portal;
+    grid[random_exit_left][0] = CellType::Portal(Portal {
+        portal_type: PortalType::Left,
+        grid_pox: random_exit_left,
+    });
 
-    let random_exit_right = rng.gen_range(1..GRID_SIZE - 1);
     (0..GRID_SIZE).for_each(|y| {
         grid[y][GRID_SIZE - 1] = CellType::Column;
     });
-    grid[random_exit_right][GRID_SIZE - 1] = CellType::Portal;
+    grid[random_exit_right][GRID_SIZE - 1] = CellType::Portal(Portal {
+        portal_type: PortalType::Right,
+        grid_pox: random_exit_right,
+    });
 
+    // generate walls
     let fill_cells = (GRID_SIZE as f32 * GRID_SIZE as f32 * FILL_AMOUNT) as u32;
     let num_strips = fill_cells / STRIP_LENGTH;
     for _ in 0..num_strips {
@@ -193,11 +258,42 @@ fn generate_level() -> [[CellType; GRID_SIZE]; GRID_SIZE] {
         }
     }
 
+    // generate weapon spawns
+    for _ in 0..LEVEL_WEAPON_SPAWNS {
+        let mut random_cell_x = rng.gen_range(2..GRID_SIZE - 2);
+        let mut random_cell_y = rng.gen_range(2..GRID_SIZE - 2);
+
+        while grid[random_cell_y][random_cell_x] != CellType::Empty {
+            random_cell_x = rng.gen_range(2..GRID_SIZE - 2);
+            random_cell_y = rng.gen_range(2..GRID_SIZE - 2);
+        }
+
+        grid[random_cell_y][random_cell_x] = CellType::Weapon;
+    }
+
+    // generate enemies
+    for _ in 0..LEVEL_ENEMIES {
+        let mut random_cell_x = rng.gen_range(2..GRID_SIZE - 2);
+        let mut random_cell_y = rng.gen_range(2..GRID_SIZE - 2);
+
+        while grid[random_cell_y][random_cell_x] != CellType::Empty {
+            random_cell_x = rng.gen_range(2..GRID_SIZE - 2);
+            random_cell_y = rng.gen_range(2..GRID_SIZE - 2);
+        }
+
+        grid[random_cell_y][random_cell_x] = CellType::Enemy;
+    }
+
     grid
 }
 
-fn spawn_level(level_resources: Res<LevelResources>, mut commands: Commands) {
-    let grid = generate_level();
+fn spawn_level(
+    level_resources: Res<LevelResources>,
+    weapons_resources: Res<WeaponsResources>,
+    enemies_resources: Res<EnemiesResources>,
+    mut commands: Commands,
+) {
+    let grid = generate_level(None);
 
     for (y, row) in grid.iter().enumerate() {
         for (x, cell) in row.iter().enumerate() {
@@ -205,23 +301,45 @@ fn spawn_level(level_resources: Res<LevelResources>, mut commands: Commands) {
             let y_pos = (-LEVEL_SIZE / 2.0) + COLUMN_SIZE * y as f32 + COLUMN_SIZE / 2.0;
             let z_pos = COLUMN_HIGHT / 2.0;
             let translation = Vec3::new(x_pos, y_pos, z_pos);
+            let transform = Transform::from_translation(translation);
 
             match cell {
                 CellType::Column => {
                     commands.spawn(LevelObjectBundle::new(
                         level_resources.column_mesh.clone(),
                         level_resources.column_material.clone(),
-                        Transform::from_translation(translation),
+                        transform,
                         Collider::cuboid(COLUMN_SIZE / 2.0, COLUMN_SIZE / 2.0, COLUMN_HIGHT / 2.0),
                     ));
                 }
-                CellType::Portal => {
-                    commands.spawn(LevelObjectBundle::new(
-                        level_resources.portal_mesh.clone(),
-                        level_resources.portal_material.clone(),
-                        Transform::from_translation(translation),
-                        Collider::cuboid(COLUMN_SIZE / 2.0, COLUMN_SIZE / 2.0, COLUMN_HIGHT / 2.0),
+                CellType::Portal(portal) => {
+                    commands.spawn((
+                        LevelObjectBundle::new(
+                            level_resources.portal_mesh.clone(),
+                            level_resources.portal_material.clone(),
+                            transform,
+                            Collider::cuboid(
+                                COLUMN_SIZE / 2.0,
+                                COLUMN_SIZE / 2.0,
+                                COLUMN_HIGHT / 2.0,
+                            ),
+                        ),
+                        *portal,
                     ));
+                }
+                CellType::Weapon => {
+                    spawn_pistol(weapons_resources.as_ref(), &mut commands, transform);
+                }
+                CellType::Enemy => {
+                    spawn_fridge(
+                        enemies_resources.as_ref(),
+                        weapons_resources.as_ref(),
+                        &mut commands,
+                        transform,
+                    );
+                }
+                CellType::Player => {
+                    spawn_player(&mut commands, transform);
                 }
                 CellType::Empty => {}
             }

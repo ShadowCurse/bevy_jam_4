@@ -14,7 +14,7 @@ pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, spawn);
+        // app.add_systems(Startup, spawn);
         app.add_systems(
             Update,
             (
@@ -68,10 +68,10 @@ pub struct PlayerWeapon {
     pub bounce_amplitude: f32,
 }
 
-fn spawn(mut commands: Commands) {
+pub fn spawn_player(commands: &mut Commands, transform: Transform) {
     commands
         .spawn((
-            TransformBundle::from_transform(Transform::from_translation(Vec3::new(0.0, 0.0, 5.0))),
+            TransformBundle::from_transform(transform),
             RigidBody::KinematicPositionBased,
             Collider::capsule(Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 5.0), 2.0),
             CollisionGroups::new(
