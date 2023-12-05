@@ -8,16 +8,16 @@ use crate::{
 
 use super::{LevelCollider, LevelFinished, LevelObject, LevelResources, LevelSwitch};
 
-pub struct PortalPlugin;
+pub struct DoorPlugin;
 
-impl Plugin for PortalPlugin {
+impl Plugin for DoorPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, (level_finished, portal_use));
+        app.add_systems(Update, (level_finished, door_use));
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PortalType {
+pub enum DoorType {
     Top,
     Bottom,
     Left,
@@ -25,25 +25,25 @@ pub enum PortalType {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Component)]
-pub struct Portal {
-    pub portal_type: PortalType,
+pub struct Door {
+    pub door_type: DoorType,
     pub grid_pox: usize,
 }
 
 #[derive(Bundle)]
-pub struct PortalBundle {
+pub struct DoorBundle {
     pub pbr_bundle: PbrBundle,
     pub collider: Collider,
     pub collision_groups: CollisionGroups,
     pub rigid_body: RigidBody,
     pub active_events: ActiveEvents,
-    pub portal: Portal,
+    pub door: Door,
     pub level_collider: LevelCollider,
 
     pub level_object: LevelObject,
 }
 
-impl Default for PortalBundle {
+impl Default for DoorBundle {
     fn default() -> Self {
         Self {
             pbr_bundle: PbrBundle::default(),
@@ -54,8 +54,8 @@ impl Default for PortalBundle {
             ),
             rigid_body: RigidBody::Fixed,
             active_events: ActiveEvents::COLLISION_EVENTS,
-            portal: Portal {
-                portal_type: PortalType::Top,
+            door: Door {
+                door_type: DoorType::Top,
                 grid_pox: 0,
             },
             level_collider: LevelCollider,
@@ -65,13 +65,13 @@ impl Default for PortalBundle {
     }
 }
 
-impl PortalBundle {
+impl DoorBundle {
     pub fn new(
         mesh: Handle<Mesh>,
         material: Handle<StandardMaterial>,
         transform: Transform,
         collider: Collider,
-        portal: Portal,
+        door: Door,
     ) -> Self {
         Self {
             pbr_bundle: PbrBundle {
@@ -81,7 +81,7 @@ impl PortalBundle {
                 ..default()
             },
             collider,
-            portal,
+            door,
             ..default()
         }
     }
@@ -91,14 +91,14 @@ fn level_finished(
     level_resources: Res<LevelResources>,
     mut commands: Commands,
     mut level_finished_events: EventReader<LevelFinished>,
-    mut portals: Query<(Entity, &mut Handle<StandardMaterial>), With<Portal>>,
+    mut doors: Query<(Entity, &mut Handle<StandardMaterial>), With<Door>>,
 ) {
     if !level_finished_events.is_empty() {
         level_finished_events.clear();
-        for (portal, mut portal_material) in portals.iter_mut() {
-            *portal_material = level_resources.portal_open_material.clone();
+        for (door, mut door_material) in doors.iter_mut() {
+            *door_material = level_resources.door_open_material.clone();
             commands
-                .get_entity(portal)
+                .get_entity(door)
                 .unwrap()
                 .insert(Sensor)
                 .remove::<RigidBody>();
@@ -106,9 +106,9 @@ fn level_finished(
     }
 }
 
-fn portal_use(
+fn door_use(
     player: Query<Entity, With<Player>>,
-    portals: Query<&Portal>,
+    doors: Query<&Door>,
     mut level_switch_events: EventWriter<LevelSwitch>,
     mut collision_events: EventReader<CollisionEvent>,
 ) {
@@ -127,14 +127,14 @@ fn portal_use(
         {
             return;
         }
-        let portal = if collider_1 == &player {
-            if let Ok(p) = portals.get(*collider_2) {
+        let door = if collider_1 == &player {
+            if let Ok(p) = doors.get(*collider_2) {
                 p
             } else {
                 continue;
             }
         } else if collider_2 == &player {
-            if let Ok(p) = portals.get(*collider_1) {
+            if let Ok(p) = doors.get(*collider_1) {
                 p
             } else {
                 continue;
@@ -143,8 +143,6 @@ fn portal_use(
             continue;
         };
 
-        level_switch_events.send(LevelSwitch {
-            exit_portal: *portal,
-        });
+        level_switch_events.send(LevelSwitch { exit_door: *door });
     }
 }
