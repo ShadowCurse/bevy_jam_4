@@ -91,15 +91,15 @@ pub fn spawn_player(commands: &mut Commands, transform: Transform) {
         ))
         .with_children(|builder| {
             builder.spawn((
-                Camera3dBundle {
-                    transform: Transform::from_xyz(0.0, 0.0, 2.0)
-                        .looking_at(Vec3::new(1.0, 0.0, 2.0), Vec3::Z),
-                    ..default()
-                },
-                // TransformBundle::from_transform(
-                //     Transform::from_xyz(0.0, 0.0, 2.0) //.with_rotation(Quat::from_rotation_x(std::f32::consts::FRAC_PI_2))
+                // Camera3dBundle {
+                //     transform: Transform::from_xyz(0.0, 0.0, 2.0)
                 //         .looking_at(Vec3::new(1.0, 0.0, 2.0), Vec3::Z),
-                // ),
+                //     ..default()
+                // },
+                TransformBundle::from_transform(
+                    Transform::from_xyz(0.0, 0.0, 2.0) //.with_rotation(Quat::from_rotation_x(std::f32::consts::FRAC_PI_2))
+                        .looking_at(Vec3::new(1.0, 0.0, 2.0), Vec3::Z),
+                ),
                 PlayerCamera {
                     default_translation: Vec3::new(0.0, 0.0, 2.0),
                     rotation_speed: 5.0,

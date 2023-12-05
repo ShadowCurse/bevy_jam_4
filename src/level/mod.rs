@@ -32,7 +32,7 @@ impl Plugin for LevelPlugin {
         app.add_event::<LevelSwitch>();
         app.add_plugins(portal::PortalPlugin);
         app.add_systems(Startup, init);
-        app.add_systems(PostStartup, spawn_level);
+        app.add_systems(PostStartup, spawn_initial_level);
         app.add_systems(
             Update,
             (
@@ -65,6 +65,8 @@ pub struct LevelObject;
 #[derive(Resource)]
 struct LevelState {
     finished: bool,
+    translation: Vec3,
+    old_level_objects: Vec<Entity>,
 }
 
 #[derive(Event)]
@@ -164,7 +166,11 @@ fn init(
         portal_open_material,
     });
 
-    commands.insert_resource(LevelState { finished: false });
+    commands.insert_resource(LevelState {
+        finished: false,
+        translation: Vec3::ZERO,
+        old_level_objects: vec![],
+    });
 }
 
 fn generate_level(previus_portal: Option<Portal>) -> [[CellType; GRID_SIZE]; GRID_SIZE] {
@@ -318,12 +324,24 @@ fn generate_level(previus_portal: Option<Portal>) -> [[CellType; GRID_SIZE]; GRI
 }
 
 fn spawn_level(
-    level_resources: Res<LevelResources>,
-    weapons_resources: Res<WeaponsResources>,
-    enemies_resources: Res<EnemiesResources>,
-    mut commands: Commands,
-) {
-    let grid = generate_level(None);
+    level_resources: &LevelResources,
+    weapons_resources: &WeaponsResources,
+    enemies_resources: &EnemiesResources,
+    commands: &mut Commands,
+    level_translation: Vec3,
+    previus_portal: Option<Portal>,
+) -> Vec3 {
+    let grid = generate_level(previus_portal);
+
+    let level_translation = match previus_portal {
+        Some(portal) => match portal.portal_type {
+            PortalType::Top => level_translation + Vec3::new(0.0, -LEVEL_SIZE, 0.0),
+            PortalType::Bottom => level_translation + Vec3::new(0.0, LEVEL_SIZE, 0.0),
+            PortalType::Left => level_translation + Vec3::new(LEVEL_SIZE, 0.0, 0.0),
+            PortalType::Right => level_translation + Vec3::new(-LEVEL_SIZE, 0.0, 0.0),
+        },
+        None => level_translation,
+    };
 
     for (y, row) in grid.iter().enumerate() {
         for (x, cell) in row.iter().enumerate() {
@@ -331,7 +349,7 @@ fn spawn_level(
             let y_pos = (-LEVEL_SIZE / 2.0) + COLUMN_SIZE * y as f32 + COLUMN_SIZE / 2.0;
             let z_pos = COLUMN_HIGHT / 2.0;
             let translation = Vec3::new(x_pos, y_pos, z_pos);
-            let transform = Transform::from_translation(translation);
+            let transform = Transform::from_translation(translation + level_translation);
 
             match cell {
                 CellType::Column => {
@@ -352,18 +370,13 @@ fn spawn_level(
                     ),));
                 }
                 CellType::Weapon => {
-                    spawn_pistol(weapons_resources.as_ref(), &mut commands, transform);
+                    spawn_pistol(weapons_resources, commands, transform);
                 }
                 CellType::Enemy => {
-                    spawn_fridge(
-                        enemies_resources.as_ref(),
-                        weapons_resources.as_ref(),
-                        &mut commands,
-                        transform,
-                    );
+                    spawn_fridge(enemies_resources, weapons_resources, commands, transform);
                 }
                 CellType::Player => {
-                    spawn_player(&mut commands, transform);
+                    spawn_player(commands, transform);
                 }
                 CellType::Empty => {}
             }
@@ -374,9 +387,28 @@ fn spawn_level(
     commands.spawn(LevelColliderBundle::new(
         level_resources.floor_mesh.clone(),
         level_resources.floor_material.clone(),
-        Transform::default(),
+        Transform::from_translation(level_translation),
         Collider::cuboid(LEVEL_SIZE / 2.0, LEVEL_SIZE / 2.0, 0.5),
     ));
+
+    level_translation
+}
+
+fn spawn_initial_level(
+    level_state: Res<LevelState>,
+    level_resources: Res<LevelResources>,
+    weapons_resources: Res<WeaponsResources>,
+    enemies_resources: Res<EnemiesResources>,
+    mut commands: Commands,
+) {
+    spawn_level(
+        level_resources.as_ref(),
+        weapons_resources.as_ref(),
+        enemies_resources.as_ref(),
+        &mut commands,
+        level_state.translation,
+        None,
+    );
 }
 
 fn level_progress(
@@ -392,19 +424,29 @@ fn level_progress(
 }
 
 fn level_switch(
+    level_resources: Res<LevelResources>,
+    weapons_resources: Res<WeaponsResources>,
+    enemies_resources: Res<EnemiesResources>,
     level_objects: Query<Entity, With<LevelObject>>,
+    mut level_state: ResMut<LevelState>,
     mut commands: Commands,
     mut level_switch_events: EventReader<LevelSwitch>,
 ) {
-    if !level_switch_events.is_empty() {
-        level_switch_events.clear();
+    for event in level_switch_events.read() {
         println!("exit portal taken. switching level");
-        for level_object in level_objects.iter() {
-            commands
-                .get_entity(level_object)
-                .unwrap()
-                .despawn_recursive();
-        }
+        let old_level_objects = level_objects.iter().collect::<Vec<_>>();
+
+        let new_translation = spawn_level(
+            level_resources.as_ref(),
+            weapons_resources.as_ref(),
+            enemies_resources.as_ref(),
+            &mut commands,
+            level_state.translation,
+            Some(event.exit_portal),
+        );
+
+        level_state.translation = new_translation;
+        level_state.old_level_objects = old_level_objects;
     }
 }
 
