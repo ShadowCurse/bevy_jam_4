@@ -38,9 +38,13 @@ fn main() {
     });
 
     app.add_systems(Startup, setup);
+    app.add_systems(Update, follow_player);
 
     app.run();
 }
+
+#[derive(Component)]
+struct TestCamera;
 
 fn setup(mut commands: Commands) {
     // light
@@ -68,9 +72,32 @@ fn setup(mut commands: Commands) {
         ..default()
     });
 
-    commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(0.0, 0.0, 300.0)
-            .looking_at(Vec3::new(0.0, 0.0, 0.0), Vec3::Z),
-        ..default()
-    });
+    commands.spawn((
+        Camera3dBundle {
+            transform: Transform::from_xyz(0.0, -20.0, 300.0)
+                .looking_at(Vec3::new(0.0, 0.0, 0.0), Vec3::Z),
+            camera: Camera {
+                is_active: false,
+                ..default()
+            },
+            ..default()
+        },
+        TestCamera,
+    ));
+}
+
+fn follow_player(
+    player: Query<&Transform, (With<player::Player>, Without<TestCamera>)>,
+    mut test_camera: Query<&mut Transform, With<TestCamera>>,
+) {
+    let Ok(player_transform) = player.get_single() else {
+        return;
+    };
+
+    let Ok(mut camera_transform) = test_camera.get_single_mut() else {
+        return;
+    };
+
+    camera_transform.translation.x = player_transform.translation.x;
+    camera_transform.translation.y = player_transform.translation.y;
 }

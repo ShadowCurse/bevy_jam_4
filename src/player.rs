@@ -3,7 +3,7 @@ use bevy_rapier3d::{prelude::*, rapier::geometry::CollisionEventFlags};
 
 use crate::{
     weapons::{FreeFloatingWeapon, FreeFloatingWeaponBundle, ShootEvent, WeaponAttackTimer},
-    COLLISION_GROUP_LEVEL, COLLISION_GROUP_PICKUP, COLLISION_GROUP_PLAYER,
+    TestCamera, COLLISION_GROUP_LEVEL, COLLISION_GROUP_PICKUP, COLLISION_GROUP_PLAYER,
 };
 
 const PLAYER_WEAPON_DEFAULT_TRANSLATION: Vec3 = Vec3::new(0.0, -0.5, -1.4);
@@ -23,6 +23,7 @@ impl Plugin for PlayerPlugin {
                 player_throw_weapon,
                 player_update,
                 player_move,
+                player_camera_switch,
                 player_camera_update,
                 player_weapon_update,
             ),
@@ -91,15 +92,15 @@ pub fn spawn_player(commands: &mut Commands, transform: Transform) {
         ))
         .with_children(|builder| {
             builder.spawn((
-                // Camera3dBundle {
-                //     transform: Transform::from_xyz(0.0, 0.0, 2.0)
-                //         .looking_at(Vec3::new(1.0, 0.0, 2.0), Vec3::Z),
-                //     ..default()
-                // },
-                TransformBundle::from_transform(
-                    Transform::from_xyz(0.0, 0.0, 2.0) //.with_rotation(Quat::from_rotation_x(std::f32::consts::FRAC_PI_2))
+                Camera3dBundle {
+                    transform: Transform::from_xyz(0.0, 0.0, 2.0)
                         .looking_at(Vec3::new(1.0, 0.0, 2.0), Vec3::Z),
-                ),
+                    ..default()
+                },
+                // TransformBundle::from_transform(
+                //     Transform::from_xyz(0.0, 0.0, 2.0) //.with_rotation(Quat::from_rotation_x(std::f32::consts::FRAC_PI_2))
+                //         .looking_at(Vec3::new(1.0, 0.0, 2.0), Vec3::Z),
+                // ),
                 PlayerCamera {
                     default_translation: Vec3::new(0.0, 0.0, 2.0),
                     rotation_speed: 5.0,
@@ -355,6 +356,30 @@ fn player_move(
     }
 
     transform.translation += movement;
+}
+
+fn player_camera_switch(
+    keys: Res<Input<KeyCode>>,
+    mut player_camera: Query<&mut Camera, (With<PlayerCamera>, Without<TestCamera>)>,
+    mut test_camera: Query<&mut Camera, (With<TestCamera>, Without<PlayerCamera>)>,
+) {
+    let Ok(mut player_camera) = player_camera.get_single_mut() else {
+        return;
+    };
+
+    let Ok(mut test_camera) = test_camera.get_single_mut() else {
+        return;
+    };
+
+    if keys.just_pressed(KeyCode::Q) {
+        if player_camera.is_active {
+            player_camera.is_active = false;
+            test_camera.is_active = true;
+        } else {
+            player_camera.is_active = true;
+            test_camera.is_active = false;
+        }
+    }
 }
 
 // TODO make better

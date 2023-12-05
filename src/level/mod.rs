@@ -10,24 +10,26 @@ use crate::{
     COLLISION_GROUP_PROJECTILES,
 };
 
-use self::door::{Door, DoorBundle, DoorType};
+use self::door::{spawn_door, Door, DoorAnimationFinished, DoorAnimationType, DoorState, DoorType};
 
 mod door;
 
 const LEVEL_SIZE: f32 = 200.0;
 const COLUMN_SIZE: f32 = 5.0;
+const DOOR_THICKNESS: f32 = 2.0;
 const COLUMN_HIGHT: f32 = 10.0;
 const GRID_SIZE: usize = (LEVEL_SIZE / COLUMN_SIZE) as usize;
 const FILL_AMOUNT: f32 = 0.02;
 const STRIP_LENGTH: u32 = 3;
 
 const LEVEL_WEAPON_SPAWNS: u32 = 4;
-const LEVEL_ENEMIES: u32 = 2;
+const LEVEL_ENEMIES: u32 = 1;
 
 pub struct LevelPlugin;
 
 impl Plugin for LevelPlugin {
     fn build(&self, app: &mut App) {
+        app.add_event::<LevelStarted>();
         app.add_event::<LevelFinished>();
         app.add_event::<LevelSwitch>();
         app.add_plugins(door::DoorPlugin);
@@ -38,6 +40,7 @@ impl Plugin for LevelPlugin {
             (
                 level_progress,
                 level_switch,
+                level_delete_old,
                 collision_level_object_projectiles,
             ),
         );
@@ -68,6 +71,9 @@ struct LevelState {
     translation: Vec3,
     old_level_objects: Vec<Entity>,
 }
+
+#[derive(Event)]
+struct LevelStarted;
 
 #[derive(Event)]
 struct LevelFinished;
@@ -131,7 +137,7 @@ impl LevelColliderBundle {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum CellType {
     Empty,
     Door(Door),
@@ -152,7 +158,7 @@ fn init(
     let column_mesh = meshes.add(shape::Box::new(COLUMN_SIZE, COLUMN_SIZE, COLUMN_HIGHT).into());
     let column_material = materials.add(Color::DARK_GRAY.into());
 
-    let door_mesh = meshes.add(shape::Box::new(COLUMN_SIZE, COLUMN_SIZE, COLUMN_HIGHT).into());
+    let door_mesh = meshes.add(shape::Box::new(COLUMN_SIZE, DOOR_THICKNESS, COLUMN_HIGHT).into());
     let door_closed_material = materials.add(Color::RED.into());
     let door_open_material = materials.add(Color::BLUE.into());
 
@@ -173,72 +179,88 @@ fn init(
     });
 }
 
+// ^ y
+// |
+// -->x
 fn generate_level(previus_door: Option<Door>) -> [[CellType; GRID_SIZE]; GRID_SIZE] {
     let mut rng = rand::thread_rng();
 
+    // row order
     let mut grid = [[CellType::Empty; GRID_SIZE]; GRID_SIZE];
 
+    // generate border
+    for x in 0..GRID_SIZE {
+        grid[0][x] = CellType::Column;
+    }
+    for x in 0..GRID_SIZE {
+        grid[GRID_SIZE - 1][x] = CellType::Column;
+    }
+    (0..GRID_SIZE).for_each(|y| {
+        grid[y][0] = CellType::Column;
+    });
+    (0..GRID_SIZE).for_each(|y| {
+        grid[y][GRID_SIZE - 1] = CellType::Column;
+    });
+
     // generate doors
-    let mut random_exit_top = rng.gen_range(1..GRID_SIZE - 1);
-    let mut random_exit_bottom = rng.gen_range(1..GRID_SIZE - 1);
-    let mut random_exit_left = rng.gen_range(1..GRID_SIZE - 1);
-    let mut random_exit_right = rng.gen_range(1..GRID_SIZE - 1);
+    let mut door_top_pos = rng.gen_range(1..GRID_SIZE - 1);
+    let mut door_top_state = DoorState::Locked;
+
+    let mut door_bottom_pos = rng.gen_range(1..GRID_SIZE - 1);
+    let mut door_bottom_state = DoorState::Locked;
+
+    let mut door_left_pos = rng.gen_range(1..GRID_SIZE - 1);
+    let mut door_left_state = DoorState::Locked;
+
+    let mut door_right_pos = rng.gen_range(1..GRID_SIZE - 1);
+    let mut door_right_state = DoorState::Locked;
 
     // check prevous exit and place player at mirrored door
     if let Some(door) = previus_door {
         match door.door_type {
             DoorType::Top => {
-                random_exit_bottom = door.grid_pox;
-                // grid[GRID_SIZE - 2][random_exit_bottom] = CellType::Player;
+                door_bottom_pos = door.grid_pos;
+                door_bottom_state = DoorState::TemporaryOpen;
             }
             DoorType::Bottom => {
-                random_exit_top = door.grid_pox;
-                // grid[1][random_exit_top] = CellType::Player;
+                door_top_pos = door.grid_pos;
+                door_top_state = DoorState::TemporaryOpen;
             }
             DoorType::Left => {
-                random_exit_right = door.grid_pox;
-                // grid[random_exit_right][GRID_SIZE - 2] = CellType::Player;
+                door_right_pos = door.grid_pos;
+                door_right_state = DoorState::TemporaryOpen;
             }
             DoorType::Right => {
-                random_exit_left = door.grid_pox;
-                // grid[random_exit_left][1] = CellType::Player;
+                door_left_pos = door.grid_pos;
+                door_left_state = DoorState::TemporaryOpen;
             }
         }
     } else {
         // if it is the first level place at the bottom
-        grid[GRID_SIZE - 2][random_exit_bottom] = CellType::Player;
+        grid[GRID_SIZE - 2][door_bottom_pos] = CellType::Player;
     }
-
-    for x in 0..GRID_SIZE {
-        grid[0][x] = CellType::Column;
-    }
-    grid[0][random_exit_top] = CellType::Door(Door {
+    grid[0][door_top_pos] = CellType::Door(Door {
         door_type: DoorType::Top,
-        grid_pox: random_exit_top,
+        door_state: door_top_state,
+        grid_pos: door_top_pos,
     });
 
-    for x in 0..GRID_SIZE {
-        grid[GRID_SIZE - 1][x] = CellType::Column;
-    }
-    grid[GRID_SIZE - 1][random_exit_bottom] = CellType::Door(Door {
+    grid[GRID_SIZE - 1][door_bottom_pos] = CellType::Door(Door {
         door_type: DoorType::Bottom,
-        grid_pox: random_exit_bottom,
+        door_state: door_bottom_state,
+        grid_pos: door_bottom_pos,
     });
 
-    (0..GRID_SIZE).for_each(|y| {
-        grid[y][0] = CellType::Column;
-    });
-    grid[random_exit_left][0] = CellType::Door(Door {
+    grid[door_left_pos][0] = CellType::Door(Door {
         door_type: DoorType::Left,
-        grid_pox: random_exit_left,
+        door_state: door_left_state,
+        grid_pos: door_left_pos,
     });
 
-    (0..GRID_SIZE).for_each(|y| {
-        grid[y][GRID_SIZE - 1] = CellType::Column;
-    });
-    grid[random_exit_right][GRID_SIZE - 1] = CellType::Door(Door {
+    grid[door_right_pos][GRID_SIZE - 1] = CellType::Door(Door {
         door_type: DoorType::Right,
-        grid_pox: random_exit_right,
+        door_state: door_right_state,
+        grid_pos: door_right_pos,
     });
 
     // generate walls
@@ -320,6 +342,25 @@ fn generate_level(previus_door: Option<Door>) -> [[CellType; GRID_SIZE]; GRID_SI
         grid[random_cell_y][random_cell_x] = CellType::Enemy;
     }
 
+    // for row in grid.iter() {
+    //     for cell in row.iter() {
+    //         match cell {
+    //             CellType::Player => print!("p"),
+    //             CellType::Enemy => print!("e"),
+    //             CellType::Empty => print!(" "),
+    //             CellType::Column => print!("#"),
+    //             CellType::Weapon => print!("w"),
+    //             CellType::Door(d) => match d.door_type {
+    //                 DoorType::Bottom => print!("B"),
+    //                 DoorType::Top => print!("T"),
+    //                 DoorType::Left => print!("L"),
+    //                 DoorType::Right => print!("R"),
+    //             },
+    //         }
+    //     }
+    //     println!();
+    // }
+
     grid
 }
 
@@ -335,8 +376,8 @@ fn spawn_level(
 
     let level_translation = match previus_door {
         Some(door) => match door.door_type {
-            DoorType::Top => level_translation + Vec3::new(0.0, -LEVEL_SIZE, 0.0),
-            DoorType::Bottom => level_translation + Vec3::new(0.0, LEVEL_SIZE, 0.0),
+            DoorType::Top => level_translation + Vec3::new(0.0, LEVEL_SIZE, 0.0),
+            DoorType::Bottom => level_translation + Vec3::new(0.0, -LEVEL_SIZE, 0.0),
             DoorType::Left => level_translation + Vec3::new(-LEVEL_SIZE, 0.0, 0.0),
             DoorType::Right => level_translation + Vec3::new(LEVEL_SIZE, 0.0, 0.0),
         },
@@ -346,7 +387,7 @@ fn spawn_level(
     for (y, row) in grid.iter().enumerate() {
         for (x, cell) in row.iter().enumerate() {
             let x_pos = (-LEVEL_SIZE / 2.0) + COLUMN_SIZE * x as f32 + COLUMN_SIZE / 2.0;
-            let y_pos = (-LEVEL_SIZE / 2.0) + COLUMN_SIZE * y as f32 + COLUMN_SIZE / 2.0;
+            let y_pos = (LEVEL_SIZE / 2.0) - COLUMN_SIZE * y as f32 - COLUMN_SIZE / 2.0;
             let z_pos = COLUMN_HIGHT / 2.0;
             let translation = Vec3::new(x_pos, y_pos, z_pos);
             let transform = Transform::from_translation(translation + level_translation);
@@ -361,13 +402,7 @@ fn spawn_level(
                     ),));
                 }
                 CellType::Door(door) => {
-                    commands.spawn((DoorBundle::new(
-                        level_resources.door_mesh.clone(),
-                        level_resources.door_closed_material.clone(),
-                        transform,
-                        Collider::cuboid(COLUMN_SIZE / 2.0, COLUMN_SIZE / 2.0, COLUMN_HIGHT / 2.0),
-                        *door,
-                    ),));
+                    spawn_door(level_resources, commands, transform, *door);
                 }
                 CellType::Weapon => {
                     spawn_pistol(weapons_resources, commands, transform);
@@ -414,8 +449,14 @@ fn spawn_initial_level(
 fn level_progress(
     enemies: Query<Entity, With<Enemy>>,
     mut level_state: ResMut<LevelState>,
+    mut level_started_events: EventReader<LevelStarted>,
     mut level_finished_events: EventWriter<LevelFinished>,
 ) {
+    if !level_started_events.is_empty() {
+        level_started_events.clear();
+        level_state.finished = false;
+    }
+
     let remaining_enemies = enemies.iter().count();
     if remaining_enemies == 0 && !level_state.finished {
         level_state.finished = true;
@@ -446,6 +487,24 @@ fn level_switch(
 
         level_state.translation = new_translation;
         level_state.old_level_objects = old_level_objects;
+    }
+}
+
+fn level_delete_old(
+    mut commands: Commands,
+    mut level_state: ResMut<LevelState>,
+    mut door_amimation_finished_events: EventReader<DoorAnimationFinished>,
+) {
+    for animation_finished_event in door_amimation_finished_events.read() {
+        match animation_finished_event.animation_type {
+            DoorAnimationType::Open => {}
+            DoorAnimationType::Close => {
+                for object in level_state.old_level_objects.iter() {
+                    commands.get_entity(*object).unwrap().despawn_recursive();
+                }
+                level_state.old_level_objects.clear();
+            }
+        }
     }
 }
 
