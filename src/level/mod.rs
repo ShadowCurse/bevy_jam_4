@@ -337,8 +337,8 @@ fn spawn_level(
         Some(door) => match door.door_type {
             DoorType::Top => level_translation + Vec3::new(0.0, -LEVEL_SIZE, 0.0),
             DoorType::Bottom => level_translation + Vec3::new(0.0, LEVEL_SIZE, 0.0),
-            DoorType::Left => level_translation + Vec3::new(LEVEL_SIZE, 0.0, 0.0),
-            DoorType::Right => level_translation + Vec3::new(-LEVEL_SIZE, 0.0, 0.0),
+            DoorType::Left => level_translation + Vec3::new(-LEVEL_SIZE, 0.0, 0.0),
+            DoorType::Right => level_translation + Vec3::new(LEVEL_SIZE, 0.0, 0.0),
         },
         None => level_translation,
     };
