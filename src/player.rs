@@ -94,7 +94,7 @@ pub fn spawn_player(commands: &mut Commands, transform: Transform) {
             builder.spawn((
                 Camera3dBundle {
                     transform: Transform::from_xyz(0.0, 0.0, 2.0)
-                        .looking_at(Vec3::new(1.0, 0.0, 2.0), Vec3::Z),
+                        .looking_at(Vec3::new(0.0, 1.0, 2.0), Vec3::Z),
                     ..default()
                 },
                 // TransformBundle::from_transform(
@@ -103,7 +103,7 @@ pub fn spawn_player(commands: &mut Commands, transform: Transform) {
                 // ),
                 PlayerCamera {
                     default_translation: Vec3::new(0.0, 0.0, 2.0),
-                    rotation_speed: 1.0,
+                    rotation_speed: 5.0,
 
                     bounce_continue: false,
                     bounce_progress: 0.0,
