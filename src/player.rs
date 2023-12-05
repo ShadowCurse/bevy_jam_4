@@ -325,7 +325,7 @@ fn player_move(
         let shape_pos = transform.translation + movement;
         let shape_rot = transform.rotation;
         let shape_vel = movement;
-        let max_toi = 10.0;
+        let max_toi = 2.0;
         let filter = QueryFilter {
             flags: QueryFilterFlags::EXCLUDE_SENSORS | QueryFilterFlags::EXCLUDE_DYNAMIC,
             groups: Some(*collision_groups),
