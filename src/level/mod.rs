@@ -73,13 +73,13 @@ struct LevelState {
 }
 
 #[derive(Event)]
-struct LevelStarted;
+pub struct LevelStarted;
 
 #[derive(Event)]
-struct LevelFinished;
+pub struct LevelFinished;
 
 #[derive(Event)]
-struct LevelSwitch {
+pub struct LevelSwitch {
     exit_door: Door,
 }
 
@@ -452,8 +452,7 @@ fn level_progress(
     mut level_started_events: EventReader<LevelStarted>,
     mut level_finished_events: EventWriter<LevelFinished>,
 ) {
-    if !level_started_events.is_empty() {
-        level_started_events.clear();
+    for _ in level_started_events.read() {
         level_state.finished = false;
     }
 

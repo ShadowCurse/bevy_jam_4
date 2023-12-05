@@ -3,7 +3,7 @@ use bevy_rapier3d::prelude::*;
 
 use crate::{
     damage::{Health, KillEvent},
-    level::LevelObject,
+    level::{LevelObject, LevelStarted},
     player::Player,
     weapons::{
         pistol::PistolBundle, FreeFloatingWeaponBundle, ShootEvent, WeaponAttackTimer,
@@ -39,7 +39,10 @@ pub struct FridgePlugin;
 
 impl Plugin for FridgePlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, (fridge_move, fridge_shoot, fridge_die));
+        app.add_systems(
+            Update,
+            (fridge_enable, fridge_move, fridge_shoot, fridge_die),
+        );
     }
 }
 
@@ -49,6 +52,9 @@ pub struct Fridge {
 }
 
 #[derive(Component)]
+pub struct FridgeDisabled;
+
+#[derive(Component)]
 pub struct FridgeWeapon;
 
 #[derive(Bundle)]
@@ -56,6 +62,7 @@ pub struct FridgeBuldle {
     enemy_bundle: EnemyBundle,
     health: Health,
     fridge: Fridge,
+    disabled: FridgeDisabled,
 
     level_object: LevelObject,
 }
@@ -71,6 +78,7 @@ impl FridgeBuldle {
             enemy_bundle: EnemyBundle::new(transform, enemies_resources),
             health: Health { health },
             fridge: Fridge { attached_weapon },
+            disabled: FridgeDisabled,
 
             level_object: LevelObject,
         }
@@ -104,13 +112,28 @@ pub fn spawn_fridge(
         .add_child(weapon);
 }
 
+fn fridge_enable(
+    fridges: Query<Entity, With<FridgeDisabled>>,
+    mut commands: Commands,
+    mut level_started_events: EventReader<LevelStarted>,
+) {
+    for _ in level_started_events.read() {
+        for fridge in fridges.iter() {
+            commands
+                .get_entity(fridge)
+                .unwrap()
+                .remove::<FridgeDisabled>();
+        }
+    }
+}
+
 #[allow(clippy::complexity)]
 fn fridge_move(
     time: Res<Time>,
     player: Query<&Transform, (With<Player>, Without<Fridge>)>,
     mut fridges: Query<
         (&mut Transform, &mut KinematicCharacterController),
-        (With<Fridge>, Without<Player>),
+        (With<Fridge>, Without<FridgeDisabled>, Without<Player>),
     >,
 ) {
     let Ok(player_transfomr) = player.get_single() else {
