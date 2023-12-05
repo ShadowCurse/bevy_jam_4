@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 
-use crate::damage::Damage;
+use crate::{damage::Damage, level::LevelObject};
 
 use super::{
     FreeFloatingWeaponBundle, ProjectileBundle, ShootEvent, WeaponAttackTimer, WeaponsResources,

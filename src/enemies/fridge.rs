@@ -3,6 +3,7 @@ use bevy_rapier3d::prelude::*;
 
 use crate::{
     damage::{Health, KillEvent},
+    level::LevelObject,
     player::Player,
     weapons::{
         pistol::PistolBundle, FreeFloatingWeaponBundle, ShootEvent, WeaponAttackTimer,
@@ -55,6 +56,8 @@ pub struct FridgeBuldle {
     enemy_bundle: EnemyBundle,
     health: Health,
     fridge: Fridge,
+
+    level_object: LevelObject,
 }
 
 impl FridgeBuldle {
@@ -68,6 +71,8 @@ impl FridgeBuldle {
             enemy_bundle: EnemyBundle::new(transform, enemies_resources),
             health: Health { health },
             fridge: Fridge { attached_weapon },
+
+            level_object: LevelObject,
         }
     }
 }
@@ -90,12 +95,12 @@ pub fn spawn_fridge(
         .id();
 
     commands
-        .spawn(FridgeBuldle::new(
+        .spawn((FridgeBuldle::new(
             FRIDGE_HEALTH,
             Some(weapon),
             transform,
             enemies_resources,
-        ))
+        ),))
         .add_child(weapon);
 }
 
@@ -189,6 +194,7 @@ fn fridge_die(
                                 linvel,
                                 ..default()
                             },
+                            LevelObject,
                         ));
                     }
                 }

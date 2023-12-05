@@ -55,6 +55,13 @@ struct LevelResources {
     portal_open_material: Handle<StandardMaterial>,
 }
 
+// This component needs to be attached to
+// all entities of the level. It will be
+// used to clean up all entities from
+// old level.
+#[derive(Component)]
+pub struct LevelObject;
+
 #[derive(Resource)]
 struct LevelState {
     finished: bool,
@@ -69,19 +76,21 @@ struct LevelSwitch {
 }
 
 #[derive(Component)]
-pub struct LevelObject;
+pub struct LevelCollider;
 
 #[derive(Bundle)]
-pub struct LevelObjectBundle {
+pub struct LevelColliderBundle {
     pub pbr_bundle: PbrBundle,
     pub collider: Collider,
     pub collision_groups: CollisionGroups,
     pub active_collision_types: ActiveCollisionTypes,
     pub rigid_body: RigidBody,
+    pub level_collider: LevelCollider,
+
     pub level_object: LevelObject,
 }
 
-impl Default for LevelObjectBundle {
+impl Default for LevelColliderBundle {
     fn default() -> Self {
         Self {
             pbr_bundle: PbrBundle::default(),
@@ -93,12 +102,14 @@ impl Default for LevelObjectBundle {
             active_collision_types: ActiveCollisionTypes::default()
                 | ActiveCollisionTypes::KINEMATIC_STATIC,
             rigid_body: RigidBody::Fixed,
+            level_collider: LevelCollider,
+
             level_object: LevelObject,
         }
     }
 }
 
-impl LevelObjectBundle {
+impl LevelColliderBundle {
     pub fn new(
         mesh: Handle<Mesh>,
         material: Handle<StandardMaterial>,
@@ -172,19 +183,19 @@ fn generate_level(previus_portal: Option<Portal>) -> [[CellType; GRID_SIZE]; GRI
         match portal.portal_type {
             PortalType::Top => {
                 random_exit_bottom = portal.grid_pox;
-                grid[GRID_SIZE - 2][random_exit_bottom] = CellType::Player;
+                // grid[GRID_SIZE - 2][random_exit_bottom] = CellType::Player;
             }
             PortalType::Bottom => {
                 random_exit_top = portal.grid_pox;
-                grid[1][random_exit_top] = CellType::Player;
+                // grid[1][random_exit_top] = CellType::Player;
             }
             PortalType::Left => {
                 random_exit_right = portal.grid_pox;
-                grid[random_exit_right][GRID_SIZE - 2] = CellType::Player;
+                // grid[random_exit_right][GRID_SIZE - 2] = CellType::Player;
             }
             PortalType::Right => {
                 random_exit_left = portal.grid_pox;
-                grid[random_exit_left][1] = CellType::Player;
+                // grid[random_exit_left][1] = CellType::Player;
             }
         }
     } else {
@@ -324,12 +335,12 @@ fn spawn_level(
 
             match cell {
                 CellType::Column => {
-                    commands.spawn(LevelObjectBundle::new(
+                    commands.spawn((LevelColliderBundle::new(
                         level_resources.column_mesh.clone(),
                         level_resources.column_material.clone(),
                         transform,
                         Collider::cuboid(COLUMN_SIZE / 2.0, COLUMN_SIZE / 2.0, COLUMN_HIGHT / 2.0),
-                    ));
+                    ),));
                 }
                 CellType::Portal(portal) => {
                     commands.spawn((PortalBundle::new(
@@ -360,7 +371,7 @@ fn spawn_level(
     }
 
     // floor
-    commands.spawn(LevelObjectBundle::new(
+    commands.spawn(LevelColliderBundle::new(
         level_resources.floor_mesh.clone(),
         level_resources.floor_material.clone(),
         Transform::default(),
@@ -380,15 +391,26 @@ fn level_progress(
     }
 }
 
-fn level_switch(mut level_switch_events: EventReader<LevelSwitch>) {
-    for e in level_switch_events.read() {
-        println!("exit portal: {:?} switching level", e.exit_portal);
+fn level_switch(
+    level_objects: Query<Entity, With<LevelObject>>,
+    mut commands: Commands,
+    mut level_switch_events: EventReader<LevelSwitch>,
+) {
+    if !level_switch_events.is_empty() {
+        level_switch_events.clear();
+        println!("exit portal taken. switching level");
+        for level_object in level_objects.iter() {
+            commands
+                .get_entity(level_object)
+                .unwrap()
+                .despawn_recursive();
+        }
     }
 }
 
 fn collision_level_object_projectiles(
     projectiles: Query<Entity, With<Projectile>>,
-    level_objects: Query<Entity, With<LevelObject>>,
+    level_objects: Query<Entity, With<LevelCollider>>,
     mut commands: Commands,
     mut collision_events: EventReader<CollisionEvent>,
 ) {

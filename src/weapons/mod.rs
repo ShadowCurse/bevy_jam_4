@@ -2,8 +2,8 @@ use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 
 use crate::{
-    damage::Damage, COLLISION_GROUP_ENEMY, COLLISION_GROUP_LEVEL, COLLISION_GROUP_PICKUP,
-    COLLISION_GROUP_PLAYER, COLLISION_GROUP_PROJECTILES,
+    damage::Damage, level::LevelObject, COLLISION_GROUP_ENEMY, COLLISION_GROUP_LEVEL,
+    COLLISION_GROUP_PICKUP, COLLISION_GROUP_PLAYER, COLLISION_GROUP_PROJECTILES,
 };
 
 pub mod pistol;
@@ -54,6 +54,8 @@ pub struct ProjectileBundle {
     velocity: Velocity,
     projectile: Projectile,
     damage: Damage,
+
+    level_object: LevelObject,
 }
 
 impl Default for ProjectileBundle {
@@ -70,6 +72,8 @@ impl Default for ProjectileBundle {
             velocity: Velocity::default(),
             projectile: Projectile,
             damage: Damage::default(),
+
+            level_object: LevelObject,
         }
     }
 }
@@ -98,6 +102,8 @@ pub struct FreeFloatingWeaponBundle {
     pub sensor: Sensor,
     pub active_events: ActiveEvents,
     pub free_floating_weapon: FreeFloatingWeapon,
+
+    pub level_object: LevelObject,
 }
 
 impl FreeFloatingWeaponBundle {
@@ -110,6 +116,8 @@ impl FreeFloatingWeaponBundle {
             free_floating_weapon: FreeFloatingWeapon {
                 original_translation,
             },
+
+            level_object: LevelObject,
         }
     }
 }

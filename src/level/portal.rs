@@ -6,7 +6,7 @@ use crate::{
     COLLISION_GROUP_PROJECTILES,
 };
 
-use super::{LevelFinished, LevelObject, LevelResources, LevelSwitch};
+use super::{LevelCollider, LevelFinished, LevelObject, LevelResources, LevelSwitch};
 
 pub struct PortalPlugin;
 
@@ -38,6 +38,8 @@ pub struct PortalBundle {
     pub rigid_body: RigidBody,
     pub active_events: ActiveEvents,
     pub portal: Portal,
+    pub level_collider: LevelCollider,
+
     pub level_object: LevelObject,
 }
 
@@ -56,6 +58,8 @@ impl Default for PortalBundle {
                 portal_type: PortalType::Top,
                 grid_pox: 0,
             },
+            level_collider: LevelCollider,
+
             level_object: LevelObject,
         }
     }
