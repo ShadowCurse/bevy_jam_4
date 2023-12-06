@@ -78,7 +78,7 @@ pub fn spawn_player(commands: &mut Commands, transform: Transform) {
         .spawn((
             TransformBundle::from_transform(transform),
             RigidBody::KinematicPositionBased,
-            Collider::capsule(Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 5.0), 2.0),
+            Collider::capsule(Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 2.0), 1.0),
             CollisionGroups::new(
                 COLLISION_GROUP_PLAYER,
                 COLLISION_GROUP_LEVEL | COLLISION_GROUP_PICKUP,
@@ -118,7 +118,7 @@ pub fn spawn_player(commands: &mut Commands, transform: Transform) {
 
             builder.spawn((
                 Camera3dBundle {
-                    transform: Transform::from_xyz(0.0, -20.0, 300.0)
+                    transform: Transform::from_xyz(0.0, -20.0, 3.0)
                         .looking_at(Vec3::new(0.0, 0.0, 0.0), Vec3::Z),
                     camera: Camera {
                         is_active: false,

@@ -10,9 +10,9 @@ use crate::{
 
 use super::{
     door::{spawn_door, Door, DoorState, DoorType},
-    CellType, LevelColliderBundle, LevelObject, LevelResources, COLUMN_HIGHT, COLUMN_SIZE,
-    FILL_AMOUNT, GRID_SIZE, LEVEL_ENEMIES, LEVEL_SIZE, LEVEL_WEAPON_SPAWNS, LIGHT_COLORS,
-    STRIP_LENGTH,
+    CellType, LevelColliderBundle, LevelObject, LevelResources, LevelType, COLUMN_HIGHT,
+    COLUMN_SIZE, FILL_AMOUNT, FLOOR_THICKNESS, GRID_SIZE, LEVEL_ENEMIES, LEVEL_SIZE,
+    LEVEL_WEAPON_SPAWNS, LIGHT_COLORS, STRIP_LENGTH,
 };
 
 // ^ y
@@ -207,6 +207,7 @@ pub fn spawn_level(
     commands: &mut Commands,
     level_translation: Vec3,
     previus_door: Option<Door>,
+    level_type: LevelType,
     tutorial_level: bool,
 ) -> Vec3 {
     let mut grid = generate_level(previus_door);
@@ -293,6 +294,18 @@ pub fn spawn_level(
         Transform::from_translation(level_translation),
         Collider::cuboid(LEVEL_SIZE / 2.0, LEVEL_SIZE / 2.0, 0.5),
     ));
+
+    // roof
+    if level_type == LevelType::Covered {
+        let mut roof_translation = level_translation;
+        roof_translation.z += COLUMN_HIGHT + FLOOR_THICKNESS / 2.0;
+        commands.spawn(LevelColliderBundle::new(
+            level_resources.floor_mesh.clone(),
+            level_resources.floor_material.clone(),
+            Transform::from_translation(roof_translation),
+            Collider::cuboid(LEVEL_SIZE / 2.0, LEVEL_SIZE / 2.0, 0.5),
+        ));
+    }
 
     level_translation
 }

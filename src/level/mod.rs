@@ -18,6 +18,7 @@ use self::{
 mod door;
 mod generation;
 
+const FLOOR_THICKNESS: f32 = 1.0;
 const LEVEL_SIZE: f32 = 200.0;
 const COLUMN_SIZE: f32 = 5.0;
 const DOOR_THICKNESS: f32 = 2.0;
@@ -135,9 +136,16 @@ struct LevelResources {
 #[derive(Component)]
 pub struct LevelObject;
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum LevelType {
+    Covered,
+    Open,
+}
+
 #[derive(Resource)]
-struct LevelState {
+struct LevelInfo {
     finished: bool,
+    level_type: LevelType,
     translation: Vec3,
     old_level_objects: Vec<Entity>,
 }
@@ -222,7 +230,7 @@ fn init_resources(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    let floor_mesh = meshes.add(shape::Box::new(LEVEL_SIZE, LEVEL_SIZE, 1.0).into());
+    let floor_mesh = meshes.add(shape::Box::new(LEVEL_SIZE, LEVEL_SIZE, FLOOR_THICKNESS).into());
     let floor_material = materials.add(Color::GRAY.into());
 
     let column_mesh = meshes.add(shape::Box::new(COLUMN_SIZE, COLUMN_SIZE, COLUMN_HIGHT).into());
@@ -264,12 +272,14 @@ fn spawn_initial_level(
         &mut commands,
         Vec3::ZERO,
         None,
+        LevelType::Covered,
         true,
     );
     spawn_level_sun(&mut commands);
 
-    commands.insert_resource(LevelState {
+    commands.insert_resource(LevelInfo {
         finished: false,
+        level_type: LevelType::Covered,
         translation: Vec3::ZERO,
         old_level_objects: vec![],
     });
@@ -277,7 +287,7 @@ fn spawn_initial_level(
 
 fn level_progress(
     enemies: Query<Entity, With<Enemy>>,
-    mut level_state: ResMut<LevelState>,
+    mut level_state: ResMut<LevelInfo>,
     mut level_started_events: EventReader<LevelStarted>,
     mut level_finished_events: EventWriter<LevelFinished>,
 ) {
@@ -297,32 +307,42 @@ fn level_switch(
     weapons_resources: Res<WeaponsResources>,
     enemies_resources: Res<EnemiesResources>,
     level_objects: Query<Entity, With<LevelObject>>,
-    mut level_state: ResMut<LevelState>,
+    mut level_info: ResMut<LevelInfo>,
     mut commands: Commands,
     mut level_switch_events: EventReader<LevelSwitch>,
 ) {
     for event in level_switch_events.read() {
         let old_level_objects = level_objects.iter().collect::<Vec<_>>();
 
+        let new_level_type = if level_info.level_type == LevelType::Open {
+            LevelType::Covered
+        } else if rand::random::<bool>() {
+            LevelType::Covered
+        } else {
+            spawn_level_sun(&mut commands);
+            LevelType::Open
+        };
+
         let new_translation = spawn_level(
             level_resources.as_ref(),
             weapons_resources.as_ref(),
             enemies_resources.as_ref(),
             &mut commands,
-            level_state.translation,
+            level_info.translation,
             Some(event.exit_door),
+            new_level_type,
             false,
         );
-        spawn_level_sun(&mut commands);
 
-        level_state.translation = new_translation;
-        level_state.old_level_objects = old_level_objects;
+        level_info.level_type = new_level_type;
+        level_info.translation = new_translation;
+        level_info.old_level_objects = old_level_objects;
     }
 }
 
 fn level_delete_old(
     mut commands: Commands,
-    mut level_state: ResMut<LevelState>,
+    mut level_state: ResMut<LevelInfo>,
     mut door_amimation_finished_events: EventReader<DoorAnimationFinished>,
 ) {
     for animation_finished_event in door_amimation_finished_events.read() {

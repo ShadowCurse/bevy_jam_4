@@ -58,7 +58,7 @@ impl EnemyBundle {
                 ..default()
             },
             rigid_body: RigidBody::KinematicPositionBased,
-            collider: Collider::capsule(Vec3::new(0.0, 0.0, -3.5), Vec3::new(0.0, 0.0, 3.5), 2.0),
+            collider: Collider::capsule(Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 3.0), 2.0),
             collision_groups: CollisionGroups::new(
                 COLLISION_GROUP_ENEMY,
                 COLLISION_GROUP_LEVEL | COLLISION_GROUP_PROJECTILES,
