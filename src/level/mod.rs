@@ -3,6 +3,7 @@ use bevy_rapier3d::{prelude::*, rapier::geometry::CollisionEventFlags};
 
 use crate::{
     enemies::{EnemiesResources, Enemy},
+    player::Player,
     utils::remove_all_with,
     weapons::{Projectile, WeaponsResources},
     GlobalState, COLLISION_GROUP_ENEMY, COLLISION_GROUP_LEVEL, COLLISION_GROUP_PLAYER,
@@ -49,11 +50,8 @@ impl Plugin for LevelPlugin {
         );
 
         app.add_systems(
-            OnTransition {
-                from: GlobalState::MainMenu,
-                to: GlobalState::InGame,
-            },
-            spawn_initial_level,
+            OnEnter(GlobalState::MainMenu),
+            (resume_physics, spawn_initial_level),
         );
 
         app.add_systems(
@@ -78,20 +76,32 @@ impl Plugin for LevelPlugin {
             },
             resume_physics,
         );
+        app.add_systems(
+            OnTransition {
+                from: GlobalState::Paused,
+                to: GlobalState::MainMenu,
+            },
+            (remove_all_with::<LevelObject>, remove_all_with::<Player>),
+        );
 
         app.add_systems(
             OnTransition {
                 from: GlobalState::GameOver,
                 to: GlobalState::MainMenu,
             },
-            remove_all_with::<LevelObject>,
+            (remove_all_with::<LevelObject>, remove_all_with::<Player>),
         );
         app.add_systems(
             OnTransition {
                 from: GlobalState::GameOver,
                 to: GlobalState::InGame,
             },
-            (remove_all_with::<LevelObject>, spawn_initial_level).chain(),
+            (
+                remove_all_with::<LevelObject>,
+                remove_all_with::<Player>,
+                spawn_initial_level,
+            )
+                .chain(),
         );
 
         app.add_systems(
@@ -231,12 +241,6 @@ fn init_resources(
         door_closed_material,
         door_open_material,
     });
-
-    commands.insert_resource(LevelState {
-        finished: false,
-        translation: Vec3::ZERO,
-        old_level_objects: vec![],
-    });
 }
 
 fn stop_physics(mut physics: ResMut<RapierConfiguration>) {
@@ -248,7 +252,6 @@ fn resume_physics(mut physics: ResMut<RapierConfiguration>) {
 }
 
 fn spawn_initial_level(
-    level_state: Res<LevelState>,
     level_resources: Res<LevelResources>,
     weapons_resources: Res<WeaponsResources>,
     enemies_resources: Res<EnemiesResources>,
@@ -259,11 +262,17 @@ fn spawn_initial_level(
         weapons_resources.as_ref(),
         enemies_resources.as_ref(),
         &mut commands,
-        level_state.translation,
+        Vec3::ZERO,
         None,
         true,
     );
     spawn_level_sun(&mut commands);
+
+    commands.insert_resource(LevelState {
+        finished: false,
+        translation: Vec3::ZERO,
+        old_level_objects: vec![],
+    });
 }
 
 fn level_progress(

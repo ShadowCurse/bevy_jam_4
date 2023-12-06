@@ -6,6 +6,7 @@ use bevy_asset_loader::prelude::*;
 use crate::{utils::set_state, GlobalState, UiState};
 
 mod main_menu;
+mod pause;
 
 pub struct UiPlugin;
 
@@ -14,6 +15,7 @@ impl Plugin for UiPlugin {
         app.add_collection_to_loading_state::<_, UiAssets>(GlobalState::AssetLoading);
 
         app.add_plugins(main_menu::MainMenuPlugin);
+        app.add_plugins(pause::PausePlugin);
 
         app.add_systems(
             OnTransition {
@@ -56,7 +58,7 @@ impl Plugin for UiPlugin {
                 from: GlobalState::Paused,
                 to: GlobalState::MainMenu,
             },
-            set_state::<UiState, { UiState::Hud as u8 }>,
+            set_state::<UiState, { UiState::MainMenu as u8 }>,
         );
 
         app.add_systems(
@@ -88,8 +90,8 @@ pub struct UiConfig {
 
     pub text_style: TextStyle,
 
-    pub main_menu_style: Style,
-    pub main_menu_buttons_area_style: Style,
+    pub menu_style: Style,
+    pub menu_buttons_area_style: Style,
 
     pub title_style: Style,
     pub title_text_style: TextStyle,
@@ -138,7 +140,7 @@ fn setup_ui_config(ui_assets: Res<UiAssets>, mut commands: Commands) {
             color: Color::WHITE,
         },
 
-        main_menu_style: Style {
+        menu_style: Style {
             display: Display::Grid,
             width: Val::Percent(100.0),
             height: Val::Percent(80.0),
@@ -147,7 +149,7 @@ fn setup_ui_config(ui_assets: Res<UiAssets>, mut commands: Commands) {
             align_items: AlignItems::Center,
             ..default()
         },
-        main_menu_buttons_area_style: Style {
+        menu_buttons_area_style: Style {
             display: Display::Grid,
             justify_self: JustifySelf::Center,
             align_items: AlignItems::Center,

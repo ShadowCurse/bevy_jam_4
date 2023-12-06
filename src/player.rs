@@ -17,6 +17,7 @@ impl Plugin for PlayerPlugin {
         app.add_systems(
             Update,
             (
+                player_trigger_pause,
                 player_shoot,
                 player_pick_up_weapon,
                 player_throw_weapon,
@@ -100,10 +101,6 @@ pub fn spawn_player(commands: &mut Commands, transform: Transform) {
                         .looking_at(Vec3::new(0.0, 1.0, 2.0), Vec3::Z),
                     ..default()
                 },
-                // TransformBundle::from_transform(
-                //     Transform::from_xyz(0.0, 0.0, 2.0) //.with_rotation(Quat::from_rotation_x(std::f32::consts::FRAC_PI_2))
-                //         .looking_at(Vec3::new(1.0, 0.0, 2.0), Vec3::Z),
-                // ),
                 PlayerCamera {
                     default_translation: Vec3::new(0.0, 0.0, 2.0),
                     rotation_speed: 5.0,
@@ -135,6 +132,16 @@ pub fn spawn_player(commands: &mut Commands, transform: Transform) {
         .id();
 
     println!("player id: {id:?}");
+    commands.entity(id).log_components();
+}
+
+fn player_trigger_pause(
+    keys: Res<Input<KeyCode>>,
+    mut global_state: ResMut<NextState<GlobalState>>,
+) {
+    if keys.just_pressed(KeyCode::Escape) {
+        global_state.set(GlobalState::Paused);
+    }
 }
 
 fn player_pick_up_weapon(

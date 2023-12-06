@@ -2,6 +2,7 @@ use bevy::prelude::*;
 
 /// Removes all entities with specified component with their children
 pub fn remove_all_with<T: Component>(mut commands: Commands, entities: Query<Entity, With<T>>) {
+    println!("removing all with: {}", std::any::type_name::<T>());
     for e in entities.iter() {
         commands.entity(e).despawn_recursive();
     }

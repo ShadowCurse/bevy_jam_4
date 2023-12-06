@@ -317,7 +317,6 @@ fn door_use(
 
         door.door_state = DoorState::Used;
 
-        println!("used door {door:?}");
         level_switch_events.send(LevelSwitch { exit_door: *door });
 
         commands
@@ -354,7 +353,6 @@ fn animate_door(
             .lerp(target_translation, animation.animation_progress);
 
         if 1.0 <= animation.animation_progress {
-            println!("sending animation finished event");
             door_amimation_finished_events.send(DoorAnimationFinished {
                 animation_type: animation.animation_type,
             });

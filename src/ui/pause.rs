@@ -1,30 +1,30 @@
-use bevy::{app::AppExit, prelude::*};
+use bevy::prelude::*;
 
-use crate::{utils::remove_all_with, GlobalState, UiState, CREATED_BY, GAME_NAME};
+use crate::{utils::remove_all_with, GlobalState, UiState};
 
 use super::{spawn_button, ButtonText, UiConfig};
 
-pub struct MainMenuPlugin;
+pub struct PausePlugin;
 
-impl Plugin for MainMenuPlugin {
+impl Plugin for PausePlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(UiState::MainMenu), setup_main_menu);
-        app.add_systems(Update, button_system.run_if(in_state(UiState::MainMenu)));
-        app.add_systems(OnExit(UiState::MainMenu), remove_all_with::<MainMenu>);
+        app.add_systems(OnEnter(UiState::Paused), setup_pause_menu);
+        app.add_systems(Update, button_system.run_if(in_state(UiState::Paused)));
+        app.add_systems(OnExit(UiState::Paused), remove_all_with::<PauseMenu>);
     }
 }
 
 #[derive(Component)]
-struct MainMenu;
+struct PauseMenu;
 
 #[derive(Debug, Clone, Copy, Component)]
-enum MainMenuButton {
-    Play,
+enum PauseMenuButton {
+    Continue,
     Options,
-    Quit,
+    MainMenu,
 }
 
-fn setup_main_menu(mut commands: Commands, config: Res<UiConfig>) {
+fn setup_pause_menu(mut commands: Commands, config: Res<UiConfig>) {
     commands
         .spawn((
             NodeBundle {
@@ -32,18 +32,9 @@ fn setup_main_menu(mut commands: Commands, config: Res<UiConfig>) {
                 background_color: config.panels_background.into(),
                 ..default()
             },
-            MainMenu,
+            PauseMenu,
         ))
         .with_children(|builder| {
-            // Title
-            builder.spawn(
-                (TextBundle {
-                    text: Text::from_section(GAME_NAME, config.title_text_style.clone()),
-                    ..default()
-                })
-                .with_style(config.title_style.clone()),
-            );
-
             // Buttons
             builder
                 .spawn((NodeBundle {
@@ -52,19 +43,10 @@ fn setup_main_menu(mut commands: Commands, config: Res<UiConfig>) {
                     ..default()
                 },))
                 .with_children(|builder| {
-                    spawn_button(builder, &config, MainMenuButton::Play);
-                    spawn_button(builder, &config, MainMenuButton::Options);
-                    spawn_button(builder, &config, MainMenuButton::Quit);
+                    spawn_button(builder, &config, PauseMenuButton::Continue);
+                    spawn_button(builder, &config, PauseMenuButton::Options);
+                    spawn_button(builder, &config, PauseMenuButton::MainMenu);
                 });
-
-            // Creator
-            builder.spawn(
-                (TextBundle {
-                    text: Text::from_section(CREATED_BY, config.created_by_text_style.clone()),
-                    ..default()
-                })
-                .with_style(config.created_by_style.clone()),
-            );
         });
 }
 
@@ -72,13 +54,12 @@ fn setup_main_menu(mut commands: Commands, config: Res<UiConfig>) {
 fn button_system(
     config: Res<UiConfig>,
     interaction_query: Query<
-        (&MainMenuButton, &Interaction, &Children),
+        (&PauseMenuButton, &Interaction, &Children),
         (Changed<Interaction>, With<Button>),
     >,
-    mut main_menu_texts: Query<&mut Text, With<ButtonText<MainMenuButton>>>,
+    mut main_menu_texts: Query<&mut Text, With<ButtonText<PauseMenuButton>>>,
     mut main_menu_state: ResMut<NextState<UiState>>,
     mut global_state: ResMut<NextState<GlobalState>>,
-    mut exit: EventWriter<AppExit>,
 ) {
     for (button, interaction, children) in interaction_query.iter() {
         let text_entity = children[0];
@@ -89,13 +70,15 @@ fn button_system(
             Interaction::Pressed => {
                 text.sections[0].style.color = config.button_text_color_pressed;
                 match button {
-                    MainMenuButton::Play => {
+                    PauseMenuButton::Continue => {
                         global_state.set(GlobalState::InGame);
                     }
-                    MainMenuButton::Options => {
+                    PauseMenuButton::Options => {
                         main_menu_state.set(UiState::Options);
                     }
-                    MainMenuButton::Quit => exit.send(AppExit),
+                    PauseMenuButton::MainMenu => {
+                        global_state.set(GlobalState::MainMenu);
+                    }
                 }
             }
             Interaction::Hovered => {
