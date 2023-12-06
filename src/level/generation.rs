@@ -10,10 +10,21 @@ use crate::{
 
 use super::{
     door::{spawn_door, Door, DoorState, DoorType},
-    CellType, LevelColliderBundle, LevelObject, LevelResources, LevelType, COLUMN_HIGHT,
-    COLUMN_SIZE, FILL_AMOUNT, FLOOR_THICKNESS, GRID_SIZE, LEVEL_ENEMIES, LEVEL_SIZE,
-    LEVEL_WEAPON_SPAWNS, LIGHT_COLORS, STRIP_LENGTH,
+    spawn_light, LevelColliderBundle, LevelObject, LevelResources, LevelType, COLUMN_HIGHT,
+    COLUMN_SIZE, FILL_AMOUNT, FLOOR_THICKNESS, GRID_SIZE, LEVEL_ENEMIES, LEVEL_LIGHTS_COVERAGE,
+    LEVEL_SIZE, LEVEL_WEAPON_SPAWNS, LIGHT_COLORS, STRIP_LENGTH,
 };
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum CellType {
+    Empty,
+    Door(Door),
+    Column,
+    Light,
+    Weapon,
+    Enemy,
+    Player,
+}
 
 // ^ y
 // |
@@ -178,6 +189,15 @@ fn generate_level(previus_door: Option<Door>) -> [[CellType; GRID_SIZE]; GRID_SI
         grid[random_cell_y][random_cell_x] = CellType::Enemy;
     }
 
+    // generate lights
+    for y in (2..GRID_SIZE - 2).step_by(3) {
+        for x in (2..GRID_SIZE - 2).step_by(3) {
+            if grid[y][x] == CellType::Empty && rng.gen_bool(LEVEL_LIGHTS_COVERAGE) {
+                grid[y][x] = CellType::Light;
+            }
+        }
+    }
+
     // for row in grid.iter() {
     //     for cell in row.iter() {
     //         match cell {
@@ -228,7 +248,7 @@ pub fn spawn_level(
 
         // move player back
         let new_player_pos = (player_pos.0 + 3, player_pos.1);
-        grid[player_pos.0][player_pos.1] = CellType::Empty;
+        grid[player_pos.0][player_pos.1] = CellType::Light;
         grid[new_player_pos.0][new_player_pos.1] = CellType::Player;
 
         // place walls around player
@@ -262,16 +282,23 @@ pub fn spawn_level(
             let transform = Transform::from_translation(translation + level_translation);
 
             match cell {
+                CellType::Door(door) => {
+                    spawn_door(level_resources, commands, transform, *door);
+                }
                 CellType::Column => {
-                    commands.spawn((LevelColliderBundle::new(
+                    commands.spawn(LevelColliderBundle::new(
                         level_resources.column_mesh.clone(),
                         level_resources.column_material.clone(),
                         transform,
                         Collider::cuboid(COLUMN_SIZE / 2.0, COLUMN_SIZE / 2.0, COLUMN_HIGHT / 2.0),
-                    ),));
+                    ));
                 }
-                CellType::Door(door) => {
-                    spawn_door(level_resources, commands, transform, *door);
+                CellType::Light => {
+                    if level_type == LevelType::Covered {
+                        let mut light_transform = transform;
+                        light_transform.translation.z = COLUMN_HIGHT;
+                        spawn_light(level_resources, commands, light_transform);
+                    }
                 }
                 CellType::Weapon => {
                     spawn_pistol(weapons_resources, commands, transform);

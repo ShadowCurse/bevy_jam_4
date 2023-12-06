@@ -30,6 +30,10 @@ const STRIP_LENGTH: u32 = 3;
 const LEVEL_WEAPON_SPAWNS: u32 = 4;
 const LEVEL_ENEMIES: u32 = 1;
 
+const LEVEL_LIGHTS_COVERAGE: f64 = 0.2;
+const LIGHT_SIZE: f32 = 1.0;
+const LIGHT_THICKENSS: f32 = 0.5;
+
 const LIGHT_COLORS: [Color; 3] = [Color::WHITE, Color::BLUE, Color::ORANGE_RED];
 
 pub struct LevelPlugin;
@@ -127,6 +131,8 @@ struct LevelResources {
     door_mesh: Handle<Mesh>,
     door_closed_material: Handle<StandardMaterial>,
     door_open_material: Handle<StandardMaterial>,
+    light_mesh: Handle<Mesh>,
+    light_material: Handle<StandardMaterial>,
 }
 
 // This component needs to be attached to
@@ -215,14 +221,28 @@ impl LevelColliderBundle {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum CellType {
-    Empty,
-    Door(Door),
-    Column,
-    Weapon,
-    Enemy,
-    Player,
+fn spawn_light(level_resources: &LevelResources, commands: &mut Commands, transform: Transform) {
+    commands
+        .spawn((
+            PbrBundle {
+                mesh: level_resources.light_mesh.clone(),
+                material: level_resources.light_material.clone(),
+                transform,
+                ..default()
+            },
+            LevelObject,
+        ))
+        .with_children(|builder| {
+            builder.spawn(PointLightBundle {
+                point_light: PointLight {
+                    intensity: 2000.0,
+                    range: 100.0,
+                    ..default()
+                },
+                transform: Transform::from_translation(Vec3::new(0.0, 0.0, -1.5)),
+                ..default()
+            });
+        });
 }
 
 fn init_resources(
@@ -240,6 +260,13 @@ fn init_resources(
     let door_closed_material = materials.add(Color::RED.into());
     let door_open_material = materials.add(Color::BLUE.into());
 
+    let light_mesh = meshes.add(shape::Box::new(LIGHT_SIZE, LIGHT_SIZE, LIGHT_THICKENSS).into());
+    let light_material = materials.add(StandardMaterial {
+        base_color: Color::WHITE,
+        emissive: Color::WHITE,
+        ..default()
+    });
+
     commands.insert_resource(LevelResources {
         floor_mesh,
         floor_material,
@@ -248,6 +275,8 @@ fn init_resources(
         door_mesh,
         door_closed_material,
         door_open_material,
+        light_mesh,
+        light_material,
     });
 }
 
@@ -275,7 +304,6 @@ fn spawn_initial_level(
         LevelType::Covered,
         true,
     );
-    spawn_level_sun(&mut commands);
 
     commands.insert_resource(LevelInfo {
         finished: false,

@@ -58,7 +58,7 @@ fn main() {
 
     app.insert_resource(AmbientLight {
         color: Color::WHITE,
-        brightness: 0.2,
+        brightness: 0.1,
     });
 
     app.insert_resource(RapierConfiguration {
