@@ -2,8 +2,9 @@ use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 
 use crate::{
-    damage::Damage, level::LevelObject, COLLISION_GROUP_ENEMY, COLLISION_GROUP_LEVEL,
-    COLLISION_GROUP_PICKUP, COLLISION_GROUP_PLAYER, COLLISION_GROUP_PROJECTILES,
+    damage::Damage, level::LevelObject, GameState, GlobalState, COLLISION_GROUP_ENEMY,
+    COLLISION_GROUP_LEVEL, COLLISION_GROUP_PICKUP, COLLISION_GROUP_PLAYER,
+    COLLISION_GROUP_PROJECTILES,
 };
 
 pub mod pistol;
@@ -20,15 +21,24 @@ pub struct WeaponsPlugin;
 impl Plugin for WeaponsPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<ShootEvent>();
+
         app.add_plugins(pistol::PistolPlugin);
-        app.add_systems(Startup, init_resources);
+
+        app.add_systems(
+            OnTransition {
+                from: GlobalState::AssetLoading,
+                to: GlobalState::MainMenu,
+            },
+            init_resources,
+        );
         app.add_systems(
             Update,
             (
                 update_attack_timers,
                 update_free_floating_weapons,
                 // display_events,
-            ),
+            )
+                .run_if(in_state(GameState::InGame)),
         );
     }
 }

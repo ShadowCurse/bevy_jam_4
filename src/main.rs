@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy_asset_loader::prelude::*;
 use bevy_rapier3d::prelude::*;
 
 mod damage;
@@ -16,6 +17,10 @@ const COLLISION_GROUP_PICKUP: Group = Group::GROUP_5;
 fn main() {
     let mut app = App::new();
 
+    app.add_state::<GlobalState>();
+    app.add_state::<GameState>();
+    app.add_state::<UiState>();
+
     app.add_plugins((
         DefaultPlugins,
         RapierPhysicsPlugin::<NoUserData>::default(),
@@ -27,6 +32,10 @@ fn main() {
         weapons::WeaponsPlugin,
     ));
 
+    app.add_loading_state(
+        LoadingState::new(GlobalState::AssetLoading).continue_to_state(GlobalState::MainMenu),
+    );
+
     app.insert_resource(AmbientLight {
         color: Color::WHITE,
         brightness: 0.2,
@@ -37,16 +46,55 @@ fn main() {
         ..default()
     });
 
-    app.add_systems(Startup, setup);
-    app.add_systems(Update, follow_player);
+    app.add_systems(
+        OnTransition {
+            from: GlobalState::AssetLoading,
+            to: GlobalState::MainMenu,
+        },
+        setup,
+    );
+    app.add_systems(Update, follow_player.run_if(in_state(GlobalState::InGame)));
 
     app.run();
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Eq, Hash, States)]
+pub enum GlobalState {
+    #[default]
+    AssetLoading,
+    MainMenu,
+    InGame,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Eq, Hash, States)]
+pub enum GameState {
+    #[default]
+    NotInGame,
+    InGame,
+    Paused,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Eq, Hash, States)]
+pub enum UiState {
+    #[default]
+    NoUi,
+    MainMenu,
+    Options,
+    Hud,
+    Paused,
 }
 
 #[derive(Component)]
 struct TestCamera;
 
-fn setup(mut commands: Commands) {
+fn setup(
+    mut commands: Commands,
+    mut global_state: ResMut<NextState<GlobalState>>,
+    mut game_state: ResMut<NextState<GameState>>,
+) {
+    global_state.set(GlobalState::InGame);
+    game_state.set(GameState::InGame);
+
     // light
     commands.spawn(PointLightBundle {
         point_light: PointLight {

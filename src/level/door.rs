@@ -2,8 +2,8 @@ use bevy::prelude::*;
 use bevy_rapier3d::{prelude::*, rapier::geometry::CollisionEventFlags};
 
 use crate::{
-    player::Player, COLLISION_GROUP_ENEMY, COLLISION_GROUP_LEVEL, COLLISION_GROUP_PLAYER,
-    COLLISION_GROUP_PROJECTILES,
+    player::Player, GameState, COLLISION_GROUP_ENEMY, COLLISION_GROUP_LEVEL,
+    COLLISION_GROUP_PLAYER, COLLISION_GROUP_PROJECTILES,
 };
 
 use super::{
@@ -19,7 +19,11 @@ pub struct DoorPlugin;
 impl Plugin for DoorPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<DoorAnimationFinished>();
-        app.add_systems(Update, (level_finished, door_use, animate_door));
+
+        app.add_systems(
+            Update,
+            (level_finished, door_use, animate_door).run_if(in_state(GameState::InGame)),
+        );
     }
 }
 

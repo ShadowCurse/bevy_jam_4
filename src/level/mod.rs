@@ -6,7 +6,7 @@ use crate::{
     enemies::{fridge::spawn_fridge, EnemiesResources, Enemy},
     player::spawn_player,
     weapons::{pistol::spawn_pistol, Projectile, WeaponsResources},
-    COLLISION_GROUP_ENEMY, COLLISION_GROUP_LEVEL, COLLISION_GROUP_PLAYER,
+    GameState, GlobalState, COLLISION_GROUP_ENEMY, COLLISION_GROUP_LEVEL, COLLISION_GROUP_PLAYER,
     COLLISION_GROUP_PROJECTILES,
 };
 
@@ -32,9 +32,18 @@ impl Plugin for LevelPlugin {
         app.add_event::<LevelStarted>();
         app.add_event::<LevelFinished>();
         app.add_event::<LevelSwitch>();
+
         app.add_plugins(door::DoorPlugin);
-        app.add_systems(Startup, init);
-        app.add_systems(PostStartup, spawn_initial_level);
+
+        app.add_systems(
+            OnTransition {
+                from: GlobalState::AssetLoading,
+                to: GlobalState::MainMenu,
+            },
+            init_resources,
+        );
+
+        app.add_systems(OnEnter(GameState::InGame), spawn_initial_level);
         app.add_systems(
             Update,
             (
@@ -42,7 +51,8 @@ impl Plugin for LevelPlugin {
                 level_switch,
                 level_delete_old,
                 collision_level_object_projectiles,
-            ),
+            )
+                .run_if(in_state(GameState::InGame)),
         );
     }
 }
@@ -147,7 +157,7 @@ enum CellType {
     Player,
 }
 
-fn init(
+fn init_resources(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,

@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 
-use crate::damage::Damage;
+use crate::{damage::Damage, GameState};
 
 use super::{
     FreeFloatingWeaponBundle, ProjectileBundle, ShootEvent, WeaponAttackTimer, WeaponsResources,
@@ -17,7 +17,7 @@ pub struct PistolPlugin;
 
 impl Plugin for PistolPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, (shoot_pistol,));
+        app.add_systems(Update, (shoot_pistol,).run_if(in_state(GameState::InGame)));
     }
 }
 

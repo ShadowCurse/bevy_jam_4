@@ -3,7 +3,7 @@ use bevy_rapier3d::{prelude::*, rapier::geometry::CollisionEventFlags};
 
 use crate::{
     weapons::{FreeFloatingWeapon, FreeFloatingWeaponBundle, ShootEvent, WeaponAttackTimer},
-    TestCamera, COLLISION_GROUP_LEVEL, COLLISION_GROUP_PICKUP, COLLISION_GROUP_PLAYER,
+    GlobalState, TestCamera, COLLISION_GROUP_LEVEL, COLLISION_GROUP_PICKUP, COLLISION_GROUP_PLAYER,
 };
 
 const PLAYER_WEAPON_DEFAULT_TRANSLATION: Vec3 = Vec3::new(0.0, -0.5, -1.4);
@@ -14,7 +14,6 @@ pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
-        // app.add_systems(Startup, spawn);
         app.add_systems(
             Update,
             (
@@ -26,7 +25,8 @@ impl Plugin for PlayerPlugin {
                 player_camera_switch,
                 player_camera_update,
                 player_weapon_update,
-            ),
+            )
+                .run_if(in_state(GlobalState::InGame)),
         );
     }
 }

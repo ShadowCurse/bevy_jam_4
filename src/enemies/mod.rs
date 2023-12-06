@@ -1,7 +1,9 @@
 use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 
-use crate::{COLLISION_GROUP_ENEMY, COLLISION_GROUP_LEVEL, COLLISION_GROUP_PROJECTILES};
+use crate::{
+    GlobalState, COLLISION_GROUP_ENEMY, COLLISION_GROUP_LEVEL, COLLISION_GROUP_PROJECTILES,
+};
 
 use self::fridge::{
     FRIDGE_DIMENTION_X, FRIDGE_DIMENTION_Y, FRIDGE_DIMENTION_Z, FRIDGE_PART_DIMENTION_X,
@@ -14,8 +16,15 @@ pub struct EnemiesPlugin;
 
 impl Plugin for EnemiesPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, init_resources);
         app.add_plugins(fridge::FridgePlugin);
+
+        app.add_systems(
+            OnTransition {
+                from: GlobalState::AssetLoading,
+                to: GlobalState::MainMenu,
+            },
+            init_resources,
+        );
     }
 }
 

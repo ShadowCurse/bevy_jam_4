@@ -9,6 +9,7 @@ use crate::{
         pistol::PistolBundle, FreeFloatingWeaponBundle, ShootEvent, WeaponAttackTimer,
         WeaponsResources,
     },
+    GameState,
 };
 
 use super::{EnemiesResources, EnemyBundle};
@@ -41,7 +42,8 @@ impl Plugin for FridgePlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
-            (fridge_enable, fridge_move, fridge_shoot, fridge_die),
+            (fridge_enable, fridge_move, fridge_shoot, fridge_die)
+                .run_if(in_state(GameState::InGame)),
         );
     }
 }
