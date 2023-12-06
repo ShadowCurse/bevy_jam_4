@@ -6,6 +6,7 @@ use bevy_asset_loader::prelude::*;
 use crate::{utils::set_state, GlobalState, UiState};
 
 mod main_menu;
+mod options;
 mod pause;
 
 pub struct UiPlugin;
@@ -15,6 +16,7 @@ impl Plugin for UiPlugin {
         app.add_collection_to_loading_state::<_, UiAssets>(GlobalState::AssetLoading);
 
         app.add_plugins(main_menu::MainMenuPlugin);
+        app.add_plugins(options::OptionsPlugin);
         app.add_plugins(pause::PausePlugin);
 
         app.add_systems(
@@ -93,6 +95,9 @@ pub struct UiConfig {
     pub menu_style: Style,
     pub menu_buttons_area_style: Style,
 
+    pub options_text_style: TextStyle,
+    pub options_buttons_area_style: Style,
+
     pub title_style: Style,
     pub title_text_style: TextStyle,
 
@@ -130,6 +135,7 @@ fn setup_ui_config(ui_assets: Res<UiAssets>, mut commands: Commands) {
 
         button_style: Style {
             margin: UiRect::all(Val::Percent(10.0)),
+            justify_self: JustifySelf::Center,
             justify_content: JustifyContent::Center,
             align_items: AlignItems::Center,
             ..default()
@@ -154,6 +160,18 @@ fn setup_ui_config(ui_assets: Res<UiAssets>, mut commands: Commands) {
             justify_self: JustifySelf::Center,
             align_items: AlignItems::Center,
             ..default()
+        },
+
+        options_buttons_area_style: Style {
+            display: Display::Grid,
+            justify_self: JustifySelf::Center,
+            align_items: AlignItems::Center,
+            ..default()
+        },
+        options_text_style: TextStyle {
+            font: ui_assets.font.clone(),
+            font_size: 50.0,
+            color: Color::ORANGE_RED,
         },
 
         title_style: Style {

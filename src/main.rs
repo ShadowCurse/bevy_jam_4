@@ -66,6 +66,11 @@ fn main() {
         ..default()
     });
 
+    app.insert_resource(GameSettings {
+        window_mode: WindowMode::Windowed,
+        volume: 0.5,
+    });
+
     app.run();
 }
 
@@ -126,3 +131,9 @@ pub enum UiState {
     GameOver,
 }
 impl_into_state!(UiState);
+
+#[derive(Resource)]
+struct GameSettings {
+    window_mode: WindowMode,
+    volume: f32,
+}
