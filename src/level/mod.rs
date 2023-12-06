@@ -5,8 +5,9 @@ use rand::Rng;
 use crate::{
     enemies::{fridge::spawn_fridge, EnemiesResources, Enemy},
     player::spawn_player,
+    utils::remove_all_with,
     weapons::{pistol::spawn_pistol, Projectile, WeaponsResources},
-    GameState, GlobalState, COLLISION_GROUP_ENEMY, COLLISION_GROUP_LEVEL, COLLISION_GROUP_PLAYER,
+    GlobalState, COLLISION_GROUP_ENEMY, COLLISION_GROUP_LEVEL, COLLISION_GROUP_PLAYER,
     COLLISION_GROUP_PROJECTILES,
 };
 
@@ -45,7 +46,52 @@ impl Plugin for LevelPlugin {
             init_resources,
         );
 
-        app.add_systems(OnEnter(GameState::InGame), spawn_initial_level);
+        app.add_systems(
+            OnTransition {
+                from: GlobalState::MainMenu,
+                to: GlobalState::InGame,
+            },
+            spawn_initial_level,
+        );
+
+        app.add_systems(
+            OnTransition {
+                from: GlobalState::InGame,
+                to: GlobalState::Paused,
+            },
+            stop_physics,
+        );
+        app.add_systems(
+            OnTransition {
+                from: GlobalState::InGame,
+                to: GlobalState::GameOver,
+            },
+            stop_physics,
+        );
+
+        app.add_systems(
+            OnTransition {
+                from: GlobalState::Paused,
+                to: GlobalState::InGame,
+            },
+            resume_physics,
+        );
+
+        app.add_systems(
+            OnTransition {
+                from: GlobalState::GameOver,
+                to: GlobalState::MainMenu,
+            },
+            remove_all_with::<LevelObject>,
+        );
+        app.add_systems(
+            OnTransition {
+                from: GlobalState::GameOver,
+                to: GlobalState::InGame,
+            },
+            (remove_all_with::<LevelObject>, spawn_initial_level).chain(),
+        );
+
         app.add_systems(
             Update,
             (
@@ -54,7 +100,7 @@ impl Plugin for LevelPlugin {
                 level_delete_old,
                 collision_level_object_projectiles,
             )
-                .run_if(in_state(GameState::InGame)),
+                .run_if(in_state(GlobalState::InGame)),
         );
     }
 }
@@ -496,6 +542,14 @@ fn spawn_level_sun(commands: &mut Commands) {
         },
         LevelObject,
     ));
+}
+
+fn stop_physics(mut physics: ResMut<RapierConfiguration>) {
+    physics.physics_pipeline_active = false;
+}
+
+fn resume_physics(mut physics: ResMut<RapierConfiguration>) {
+    physics.physics_pipeline_active = true;
 }
 
 fn spawn_initial_level(

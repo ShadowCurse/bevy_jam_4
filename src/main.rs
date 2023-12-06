@@ -1,4 +1,7 @@
-use bevy::prelude::*;
+use bevy::{
+    prelude::*,
+    window::{WindowMode, WindowResolution},
+};
 use bevy_asset_loader::prelude::*;
 use bevy_rapier3d::prelude::*;
 
@@ -6,7 +9,14 @@ mod damage;
 mod enemies;
 mod level;
 mod player;
+mod ui;
+mod utils;
 mod weapons;
+
+use utils::IntoState;
+
+const GAME_NAME: &str = "Fridges must die";
+const CREATED_BY: &str = "Created by ShadowCurse";
 
 const COLLISION_GROUP_LEVEL: Group = Group::GROUP_1;
 const COLLISION_GROUP_PLAYER: Group = Group::GROUP_2;
@@ -18,23 +28,33 @@ fn main() {
     let mut app = App::new();
 
     app.add_state::<GlobalState>();
-    app.add_state::<GameState>();
     app.add_state::<UiState>();
 
+    app.add_loading_state(
+        LoadingState::new(GlobalState::AssetLoading).continue_to_state(GlobalState::MainMenu),
+    );
+
     app.add_plugins((
-        DefaultPlugins,
+        DefaultPlugins
+            // .set(ImagePlugin::default_nearest())
+            .set(WindowPlugin {
+                primary_window: Some(Window {
+                    title: GAME_NAME.to_string(),
+                    mode: WindowMode::Windowed,
+                    resolution: WindowResolution::new(1280.0, 720.0),
+                    ..default()
+                }),
+                ..default()
+            }),
         RapierPhysicsPlugin::<NoUserData>::default(),
         RapierDebugRenderPlugin::default(),
         damage::DamagePlugin,
         enemies::EnemiesPlugin,
         level::LevelPlugin,
+        ui::UiPlugin,
         player::PlayerPlugin,
         weapons::WeaponsPlugin,
     ));
-
-    app.add_loading_state(
-        LoadingState::new(GlobalState::AssetLoading).continue_to_state(GlobalState::MainMenu),
-    );
 
     app.insert_resource(AmbientLight {
         color: Color::WHITE,
@@ -46,13 +66,6 @@ fn main() {
         ..default()
     });
 
-    app.add_systems(
-        OnTransition {
-            from: GlobalState::AssetLoading,
-            to: GlobalState::MainMenu,
-        },
-        setup,
-    );
     app.run();
 }
 
@@ -97,16 +110,10 @@ pub enum GlobalState {
     AssetLoading,
     MainMenu,
     InGame,
-}
-
-#[derive(Default, Debug, Clone, PartialEq, Eq, Hash, States)]
-pub enum GameState {
-    #[default]
-    NotInGame,
-    InGame,
     Paused,
     GameOver,
 }
+impl_into_state!(GlobalState);
 
 #[derive(Default, Debug, Clone, PartialEq, Eq, Hash, States)]
 pub enum UiState {
@@ -118,12 +125,4 @@ pub enum UiState {
     Paused,
     GameOver,
 }
-
-fn setup(
-    // mut commands: Commands,
-    mut global_state: ResMut<NextState<GlobalState>>,
-    mut game_state: ResMut<NextState<GameState>>,
-) {
-    global_state.set(GlobalState::InGame);
-    game_state.set(GameState::InGame);
-}
+impl_into_state!(UiState);

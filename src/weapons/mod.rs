@@ -2,9 +2,8 @@ use bevy::prelude::*;
 use bevy_rapier3d::prelude::*;
 
 use crate::{
-    damage::Damage, level::LevelObject, GameState, GlobalState, COLLISION_GROUP_ENEMY,
-    COLLISION_GROUP_LEVEL, COLLISION_GROUP_PICKUP, COLLISION_GROUP_PLAYER,
-    COLLISION_GROUP_PROJECTILES,
+    damage::Damage, level::LevelObject, GlobalState, COLLISION_GROUP_ENEMY, COLLISION_GROUP_LEVEL,
+    COLLISION_GROUP_PICKUP, COLLISION_GROUP_PLAYER, COLLISION_GROUP_PROJECTILES,
 };
 
 pub mod pistol;
@@ -38,7 +37,7 @@ impl Plugin for WeaponsPlugin {
                 update_free_floating_weapons,
                 // display_events,
             )
-                .run_if(in_state(GameState::InGame)),
+                .run_if(in_state(GlobalState::InGame)),
         );
     }
 }

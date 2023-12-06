@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_rapier3d::{prelude::*, rapier::geometry::CollisionEventFlags};
 
-use crate::{enemies::Enemy, weapons::Projectile, GameState};
+use crate::{enemies::Enemy, weapons::Projectile, GlobalState};
 
 pub struct DamagePlugin;
 
@@ -9,7 +9,7 @@ impl Plugin for DamagePlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<KillEvent>();
 
-        app.add_systems(Update, apply_damage.run_if(in_state(GameState::InGame)));
+        app.add_systems(Update, apply_damage.run_if(in_state(GlobalState::InGame)));
     }
 }
 

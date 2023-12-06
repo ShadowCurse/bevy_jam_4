@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use bevy_rapier3d::{prelude::*, rapier::geometry::CollisionEventFlags};
 
 use crate::{
-    player::Player, GameState, COLLISION_GROUP_ENEMY, COLLISION_GROUP_LEVEL,
+    player::Player, GlobalState, COLLISION_GROUP_ENEMY, COLLISION_GROUP_LEVEL,
     COLLISION_GROUP_PLAYER, COLLISION_GROUP_PROJECTILES,
 };
 
@@ -22,7 +22,7 @@ impl Plugin for DoorPlugin {
 
         app.add_systems(
             Update,
-            (level_finished, door_use, animate_door).run_if(in_state(GameState::InGame)),
+            (level_finished, door_use, animate_door).run_if(in_state(GlobalState::InGame)),
         );
     }
 }
