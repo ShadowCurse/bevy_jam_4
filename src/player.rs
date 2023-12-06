@@ -3,7 +3,7 @@ use bevy_rapier3d::{prelude::*, rapier::geometry::CollisionEventFlags};
 
 use crate::{
     weapons::{FreeFloatingWeapon, FreeFloatingWeaponBundle, ShootEvent, WeaponAttackTimer},
-    GlobalState, TestCamera, COLLISION_GROUP_LEVEL, COLLISION_GROUP_PICKUP, COLLISION_GROUP_PLAYER,
+    GlobalState, COLLISION_GROUP_LEVEL, COLLISION_GROUP_PICKUP, COLLISION_GROUP_PLAYER,
 };
 
 const PLAYER_WEAPON_DEFAULT_TRANSLATION: Vec3 = Vec3::new(0.0, -0.5, -1.4);
@@ -60,6 +60,9 @@ pub struct PlayerCamera {
 }
 
 #[derive(Component)]
+struct PlayerTestCamera;
+
+#[derive(Component)]
 pub struct PlayerWeapon {
     pub default_translation: Vec3,
 
@@ -114,6 +117,19 @@ pub fn spawn_player(commands: &mut Commands, transform: Transform) {
                     bounce_amplitude_modifier_speed: 1.0,
                     bounce_amplitude_modifier_max: 2.0,
                 },
+            ));
+
+            builder.spawn((
+                Camera3dBundle {
+                    transform: Transform::from_xyz(0.0, -20.0, 300.0)
+                        .looking_at(Vec3::new(0.0, 0.0, 0.0), Vec3::Z),
+                    camera: Camera {
+                        is_active: false,
+                        ..default()
+                    },
+                    ..default()
+                },
+                PlayerTestCamera,
             ));
         })
         .id();
@@ -360,8 +376,8 @@ fn player_move(
 
 fn player_camera_switch(
     keys: Res<Input<KeyCode>>,
-    mut player_camera: Query<&mut Camera, (With<PlayerCamera>, Without<TestCamera>)>,
-    mut test_camera: Query<&mut Camera, (With<TestCamera>, Without<PlayerCamera>)>,
+    mut player_camera: Query<&mut Camera, (With<PlayerCamera>, Without<PlayerTestCamera>)>,
+    mut test_camera: Query<&mut Camera, (With<PlayerTestCamera>, Without<PlayerCamera>)>,
 ) {
     let Ok(mut player_camera) = player_camera.get_single_mut() else {
         return;
@@ -372,13 +388,8 @@ fn player_camera_switch(
     };
 
     if keys.just_pressed(KeyCode::Q) {
-        if player_camera.is_active {
-            player_camera.is_active = false;
-            test_camera.is_active = true;
-        } else {
-            player_camera.is_active = true;
-            test_camera.is_active = false;
-        }
+        player_camera.is_active = !player_camera.is_active;
+        test_camera.is_active = !test_camera.is_active;
     }
 }
 

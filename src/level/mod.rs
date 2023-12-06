@@ -25,6 +25,8 @@ const STRIP_LENGTH: u32 = 3;
 const LEVEL_WEAPON_SPAWNS: u32 = 4;
 const LEVEL_ENEMIES: u32 = 1;
 
+const LIGHT_COLORS: [Color; 3] = [Color::WHITE, Color::BLUE, Color::ORANGE_RED];
+
 pub struct LevelPlugin;
 
 impl Plugin for LevelPlugin {
@@ -471,6 +473,31 @@ fn spawn_level(
     level_translation
 }
 
+fn spawn_level_sun(commands: &mut Commands) {
+    let mut rng = rand::thread_rng();
+    let color = LIGHT_COLORS[rng.gen_range(0..LIGHT_COLORS.len())];
+
+    let rotation_x = rng.gen_range(std::f32::consts::FRAC_PI_8..std::f32::consts::FRAC_2_PI);
+    let rotation_z = rng.gen_range(std::f32::consts::FRAC_PI_8..std::f32::consts::FRAC_2_PI);
+    // directional 'sun' light
+    commands.spawn((
+        DirectionalLightBundle {
+            directional_light: DirectionalLight {
+                shadows_enabled: true,
+                color,
+                ..default()
+            },
+            transform: Transform {
+                translation: Vec3::new(0.0, 2.0, 0.0),
+                rotation: Quat::from_rotation_x(-rotation_x) * Quat::from_rotation_z(-rotation_z),
+                ..default()
+            },
+            ..default()
+        },
+        LevelObject,
+    ));
+}
+
 fn spawn_initial_level(
     level_state: Res<LevelState>,
     level_resources: Res<LevelResources>,
@@ -487,6 +514,7 @@ fn spawn_initial_level(
         None,
         true,
     );
+    spawn_level_sun(&mut commands);
 }
 
 fn level_progress(
@@ -527,6 +555,7 @@ fn level_switch(
             Some(event.exit_door),
             false,
         );
+        spawn_level_sun(&mut commands);
 
         level_state.translation = new_translation;
         level_state.old_level_objects = old_level_objects;

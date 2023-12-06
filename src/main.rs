@@ -53,10 +53,43 @@ fn main() {
         },
         setup,
     );
-    app.add_systems(Update, follow_player.run_if(in_state(GlobalState::InGame)));
-
     app.run();
 }
+
+//                   |  Initial state
+//                   |  GlobalState::AssetLoading
+// Only resources    |  GameState::NotInGame
+// are initialized   |  UiState::NoUi
+//                   |
+//                  ||->After asests are loader <-|
+//                  ||  GlobalState::MainMenu     | Opinons are
+//                  ||  GameState::NotInGame      | destroyed
+// MainMenu         ||  UiState::MainMenu         |
+// is destroyed     ||                            |
+//                  ||->Pressing options ----------
+//                  |   GlobalState::MainMenu
+//                  |   GameState::NotInGame
+//                  |   UiState::Options
+// MainMenu         |
+// is destroyed  ||||-> Pressing play           <-|
+//               |||    GlobalState::InGame       |
+//               |||    GameState::InGame         | Pause menu is
+// HUD is        |||    UiState::Hud              | destroyed
+// destroyed     |||                              |
+//               |||->  Pressing pause in game ----           <-|
+//               ||     GlobalState::InGame                     |
+// Pause menu    ||     GameState::Paused                       | Options are
+// is destroyed  ||     UiState::Paused                         | destroyed
+//               ||                                             |
+//               ||->   Pressing options while paused in game ---
+//               |      GlobalState::InGame
+// HUD is        |      GameState::Paused
+// destroyed     |      UiState::Options
+//               |
+//               |->    Game over
+//                      GlobalState::InGame
+//                      GameState::GameOver
+//                      UiState::GameOver
 
 #[derive(Default, Debug, Clone, PartialEq, Eq, Hash, States)]
 pub enum GlobalState {
@@ -72,6 +105,7 @@ pub enum GameState {
     NotInGame,
     InGame,
     Paused,
+    GameOver,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Eq, Hash, States)]
@@ -82,70 +116,14 @@ pub enum UiState {
     Options,
     Hud,
     Paused,
+    GameOver,
 }
 
-#[derive(Component)]
-struct TestCamera;
-
 fn setup(
-    mut commands: Commands,
+    // mut commands: Commands,
     mut global_state: ResMut<NextState<GlobalState>>,
     mut game_state: ResMut<NextState<GameState>>,
 ) {
     global_state.set(GlobalState::InGame);
     game_state.set(GameState::InGame);
-
-    // light
-    commands.spawn(PointLightBundle {
-        point_light: PointLight {
-            intensity: 1000.0,
-            shadows_enabled: true,
-            ..default()
-        },
-        transform: Transform::from_xyz(0.0, 0.0, 30.0),
-        ..default()
-    });
-
-    // directional 'sun' light
-    commands.spawn(DirectionalLightBundle {
-        directional_light: DirectionalLight {
-            shadows_enabled: true,
-            ..default()
-        },
-        transform: Transform {
-            translation: Vec3::new(0.0, 2.0, 0.0),
-            rotation: Quat::from_rotation_x(-std::f32::consts::PI / 4.),
-            ..default()
-        },
-        ..default()
-    });
-
-    commands.spawn((
-        Camera3dBundle {
-            transform: Transform::from_xyz(0.0, -20.0, 300.0)
-                .looking_at(Vec3::new(0.0, 0.0, 0.0), Vec3::Z),
-            camera: Camera {
-                is_active: false,
-                ..default()
-            },
-            ..default()
-        },
-        TestCamera,
-    ));
-}
-
-fn follow_player(
-    player: Query<&Transform, (With<player::Player>, Without<TestCamera>)>,
-    mut test_camera: Query<&mut Transform, With<TestCamera>>,
-) {
-    let Ok(player_transform) = player.get_single() else {
-        return;
-    };
-
-    let Ok(mut camera_transform) = test_camera.get_single_mut() else {
-        return;
-    };
-
-    camera_transform.translation.x = player_transform.translation.x;
-    camera_transform.translation.y = player_transform.translation.y;
 }
