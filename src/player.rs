@@ -2,10 +2,14 @@ use bevy::{core_pipeline::Skybox, input::mouse::MouseMotion, prelude::*};
 use bevy_rapier3d::{prelude::*, rapier::geometry::CollisionEventFlags};
 
 use crate::{
+    damage::{Health, KillEvent},
     ui::UiResources,
     weapons::{FreeFloatingWeapon, FreeFloatingWeaponBundle, ShootEvent, WeaponAttackTimer},
     GlobalState, COLLISION_GROUP_LEVEL, COLLISION_GROUP_PICKUP, COLLISION_GROUP_PLAYER,
+    COLLISION_GROUP_PROJECTILES,
 };
+
+const PLAYER_HEALTH: i32 = 100;
 
 const PLAYER_WEAPON_DEFAULT_TRANSLATION: Vec3 = Vec3::new(0.2, -0.5, -1.4);
 const PLAYER_THROW_OFFSET_SCALE: f32 = 10.0;
@@ -38,6 +42,7 @@ impl Plugin for PlayerPlugin {
         app.add_systems(
             Update,
             (
+                player_die,
                 player_hud_animation,
                 player_trigger_pause,
                 player_shoot,
@@ -127,7 +132,7 @@ pub fn spawn_player(
             Collider::capsule(Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 2.0), 1.0),
             CollisionGroups::new(
                 COLLISION_GROUP_PLAYER,
-                COLLISION_GROUP_LEVEL | COLLISION_GROUP_PICKUP,
+                COLLISION_GROUP_LEVEL | COLLISION_GROUP_PROJECTILES | COLLISION_GROUP_PICKUP,
             ),
             ActiveCollisionTypes::KINEMATIC_STATIC | ActiveCollisionTypes::DYNAMIC_KINEMATIC,
             Player {
@@ -138,6 +143,9 @@ pub fn spawn_player(
             PlayerVelocity {
                 was_input: false,
                 velocity: Vec3::default(),
+            },
+            Health {
+                health: PLAYER_HEALTH,
             },
         ))
         .with_children(|builder| {
@@ -330,6 +338,22 @@ fn player_hud_animation(
             return;
         };
         e.remove::<PlayerHudAnimation>();
+    }
+}
+
+fn player_die(
+    player: Query<Entity, With<Player>>,
+    mut kill_events: EventReader<KillEvent>,
+    mut global_state: ResMut<NextState<GlobalState>>,
+) {
+    let Ok(player) = player.get_single() else {
+        return;
+    };
+
+    for kill_event in kill_events.read() {
+        if kill_event.entity == player {
+            global_state.set(GlobalState::GameOver);
+        }
     }
 }
 

@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::{utils::remove_all_with, UiState};
+use crate::{damage::Health, player::Player, utils::remove_all_with, UiState};
 
 use super::UiConfig;
 
@@ -119,9 +119,15 @@ fn update_player_ammo(mut window_mode_text: Query<&mut Text, With<HudPlayerAmmo>
     text.sections[0].value = format!("---");
 }
 
-fn update_plyaer_hp(mut volume_text: Query<&mut Text, With<HudPlayerHp>>) {
+fn update_plyaer_hp(
+    player_hp: Query<&Health, With<Player>>,
+    mut volume_text: Query<&mut Text, With<HudPlayerHp>>,
+) {
+    let Ok(hp) = player_hp.get_single() else {
+        return;
+    };
     let mut text = volume_text.single_mut();
-    text.sections[0].value = format!("{}", 100);
+    text.sections[0].value = format!("{}", hp.health);
 }
 
 fn update_plyaer_score(mut volume_text: Query<&mut Text, With<HudPlayerScore>>) {

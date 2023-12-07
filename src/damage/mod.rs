@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_rapier3d::{prelude::*, rapier::geometry::CollisionEventFlags};
 
-use crate::{enemies::Enemy, weapons::Projectile, GlobalState};
+use crate::{weapons::Projectile, GlobalState};
 
 pub struct DamagePlugin;
 
@@ -33,7 +33,7 @@ fn apply_damage(
     mut commands: Commands,
     mut kill_events: EventWriter<KillEvent>,
     mut collision_events: EventReader<CollisionEvent>,
-    mut enemies: Query<(Entity, &mut Health), With<Enemy>>,
+    mut entities: Query<(Entity, &mut Health)>,
 ) {
     for collision_event in collision_events.read() {
         let (collider_1, collider_2, flags) = match collision_event {
@@ -44,16 +44,16 @@ fn apply_damage(
             return;
         }
 
-        let (projectile_damage, (enemy, mut enemy_health)) =
+        let (projectile_damage, (entity, mut entity_health)) =
             if let Ok(p) = projectiles.get(*collider_1) {
-                let e = if let Ok(e) = enemies.get_mut(*collider_2) {
+                let e = if let Ok(e) = entities.get_mut(*collider_2) {
                     e
                 } else {
                     continue;
                 };
                 (p, e)
             } else if let Ok(p) = projectiles.get(*collider_2) {
-                let e = if let Ok(e) = enemies.get_mut(*collider_1) {
+                let e = if let Ok(e) = entities.get_mut(*collider_1) {
                     e
                 } else {
                     continue;
@@ -63,10 +63,10 @@ fn apply_damage(
                 continue;
             };
 
-        enemy_health.health -= projectile_damage.damage;
-        if enemy_health.health <= 0 {
-            commands.get_entity(enemy).unwrap().remove::<Health>();
-            kill_events.send(KillEvent { entity: enemy });
+        entity_health.health -= projectile_damage.damage;
+        if entity_health.health <= 0 {
+            commands.get_entity(entity).unwrap().remove::<Health>();
+            kill_events.send(KillEvent { entity });
         }
     }
 }
