@@ -1,7 +1,8 @@
-use bevy::{input::mouse::MouseMotion, prelude::*};
+use bevy::{core_pipeline::Skybox, input::mouse::MouseMotion, prelude::*};
 use bevy_rapier3d::{prelude::*, rapier::geometry::CollisionEventFlags};
 
 use crate::{
+    level::LevelAssets,
     weapons::{FreeFloatingWeapon, FreeFloatingWeaponBundle, ShootEvent, WeaponAttackTimer},
     GlobalState, COLLISION_GROUP_LEVEL, COLLISION_GROUP_PICKUP, COLLISION_GROUP_PLAYER,
 };
@@ -73,7 +74,7 @@ pub struct PlayerWeapon {
     pub bounce_amplitude: f32,
 }
 
-pub fn spawn_player(commands: &mut Commands, transform: Transform) {
+pub fn spawn_player(skybox_image: Handle<Image>, commands: &mut Commands, transform: Transform) {
     let id = commands
         .spawn((
             TransformBundle::from_transform(transform),
@@ -101,6 +102,7 @@ pub fn spawn_player(commands: &mut Commands, transform: Transform) {
                         .looking_at(Vec3::new(0.0, 1.0, 2.0), Vec3::Z),
                     ..default()
                 },
+                Skybox(skybox_image),
                 PlayerCamera {
                     default_translation: Vec3::new(0.0, 0.0, 2.0),
                     rotation_speed: 5.0,

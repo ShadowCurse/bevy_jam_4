@@ -1,5 +1,14 @@
-use bevy::prelude::*;
+use bevy::{
+    core_pipeline::Skybox,
+    prelude::*,
+    render::render_resource::{TextureViewDescriptor, TextureViewDimension},
+};
+use bevy_asset_loader::prelude::*;
 use bevy_rapier3d::{prelude::*, rapier::geometry::CollisionEventFlags};
+use rand::{
+    distributions::{Distribution, Standard},
+    Rng,
+};
 
 use crate::{
     enemies::{EnemiesResources, Enemy},
@@ -34,12 +43,18 @@ const LEVEL_LIGHTS_COVERAGE: f64 = 0.2;
 const LIGHT_SIZE: f32 = 1.0;
 const LIGHT_THICKENSS: f32 = 0.5;
 
-const LIGHT_COLORS: [Color; 3] = [Color::WHITE, Color::BLUE, Color::ORANGE_RED];
+const LEVEL_COLOR_NORMAL: Color = Color::WHITE;
+const LEVEL_COLOR_ORANGE: Color = Color::ORANGE_RED;
+const LEVEL_COLOR_BLUE: Color = Color::BLUE;
+const LEVEL_COLOR_PINK: Color = Color::PINK;
+const LEVEL_COLOR_GREEN: Color = Color::GREEN;
 
 pub struct LevelPlugin;
 
 impl Plugin for LevelPlugin {
     fn build(&self, app: &mut App) {
+        app.add_collection_to_loading_state::<_, LevelAssets>(GlobalState::AssetLoading);
+
         app.add_event::<LevelStarted>();
         app.add_event::<LevelFinished>();
         app.add_event::<LevelSwitch>();
@@ -122,6 +137,20 @@ impl Plugin for LevelPlugin {
     }
 }
 
+#[derive(AssetCollection, Resource)]
+pub struct LevelAssets {
+    #[asset(path = "skyboxes/pink_skybox.png")]
+    pub pink_skybox: Handle<Image>,
+    #[asset(path = "skyboxes/orange_skybox.png")]
+    pub orange_skybox: Handle<Image>,
+    #[asset(path = "skyboxes/blue_skybox.png")]
+    pub blue_skybox: Handle<Image>,
+    #[asset(path = "skyboxes/normal_skybox.png")]
+    pub normal_skybox: Handle<Image>,
+    #[asset(path = "skyboxes/green_skybox.png")]
+    pub green_skybox: Handle<Image>,
+}
+
 #[derive(Resource)]
 struct LevelResources {
     floor_mesh: Handle<Mesh>,
@@ -143,9 +172,55 @@ struct LevelResources {
 pub struct LevelObject;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
+enum LevelColor {
+    Pink,
+    Orange,
+    Blue,
+    Normal,
+    Green,
+}
+
+impl LevelColor {
+    fn skybox_image(&self, level_assets: &LevelAssets) -> Handle<Image> {
+        match self {
+            LevelColor::Pink => level_assets.pink_skybox.clone(),
+            LevelColor::Orange => level_assets.orange_skybox.clone(),
+            LevelColor::Blue => level_assets.blue_skybox.clone(),
+            LevelColor::Normal => level_assets.normal_skybox.clone(),
+            LevelColor::Green => level_assets.green_skybox.clone(),
+        }
+    }
+}
+
+impl Into<Color> for LevelColor {
+    fn into(self) -> Color {
+        match self {
+            LevelColor::Pink => LEVEL_COLOR_PINK,
+            LevelColor::Orange => LEVEL_COLOR_ORANGE,
+            LevelColor::Blue => LEVEL_COLOR_BLUE,
+            LevelColor::Normal => LEVEL_COLOR_NORMAL,
+            LevelColor::Green => LEVEL_COLOR_GREEN,
+        }
+    }
+}
+
+impl Distribution<LevelColor> for Standard {
+    fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> LevelColor {
+        match rng.gen_range(0..5) {
+            0 => LevelColor::Pink,
+            1 => LevelColor::Orange,
+            2 => LevelColor::Blue,
+            3 => LevelColor::Normal,
+            4 => LevelColor::Green,
+            _ => unreachable!(),
+        }
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
 enum LevelType {
     Covered,
-    Open,
+    Open(LevelColor),
 }
 
 #[derive(Resource)]
@@ -246,8 +321,10 @@ fn spawn_light(level_resources: &LevelResources, commands: &mut Commands, transf
 }
 
 fn init_resources(
+    level_assets: Res<LevelAssets>,
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
+    mut images: ResMut<Assets<Image>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     let floor_mesh = meshes.add(shape::Box::new(LEVEL_SIZE, LEVEL_SIZE, FLOOR_THICKNESS).into());
@@ -266,6 +343,21 @@ fn init_resources(
         emissive: Color::WHITE,
         ..default()
     });
+
+    for handle in [
+        &level_assets.pink_skybox,
+        &level_assets.orange_skybox,
+        &level_assets.blue_skybox,
+        &level_assets.normal_skybox,
+        &level_assets.green_skybox,
+    ] {
+        let skybox = images.get_mut(handle).unwrap();
+        skybox.reinterpret_stacked_2d_as_array(skybox.height() / skybox.width());
+        skybox.texture_view_descriptor = Some(TextureViewDescriptor {
+            dimension: Some(TextureViewDimension::Cube),
+            ..default()
+        });
+    }
 
     commands.insert_resource(LevelResources {
         floor_mesh,
@@ -289,12 +381,14 @@ fn resume_physics(mut physics: ResMut<RapierConfiguration>) {
 }
 
 fn spawn_initial_level(
+    level_assets: Res<LevelAssets>,
     level_resources: Res<LevelResources>,
     weapons_resources: Res<WeaponsResources>,
     enemies_resources: Res<EnemiesResources>,
     mut commands: Commands,
 ) {
     spawn_level(
+        level_assets.as_ref(),
         level_resources.as_ref(),
         weapons_resources.as_ref(),
         enemies_resources.as_ref(),
@@ -331,10 +425,12 @@ fn level_progress(
 }
 
 fn level_switch(
+    level_assets: Res<LevelAssets>,
     level_resources: Res<LevelResources>,
     weapons_resources: Res<WeaponsResources>,
     enemies_resources: Res<EnemiesResources>,
     level_objects: Query<Entity, With<LevelObject>>,
+    mut skybox: Query<&mut Skybox>,
     mut level_info: ResMut<LevelInfo>,
     mut commands: Commands,
     mut level_switch_events: EventReader<LevelSwitch>,
@@ -342,16 +438,30 @@ fn level_switch(
     for event in level_switch_events.read() {
         let old_level_objects = level_objects.iter().collect::<Vec<_>>();
 
-        let new_level_type = if level_info.level_type == LevelType::Open {
-            LevelType::Covered
-        } else if rand::random::<bool>() {
-            LevelType::Covered
-        } else {
-            spawn_level_sun(&mut commands);
-            LevelType::Open
+        let new_level_type = match level_info.level_type {
+            LevelType::Open(_) => LevelType::Covered,
+            LevelType::Covered => {
+                if rand::random::<bool>() {
+                    LevelType::Covered
+                } else {
+                    let level_color = rand::random::<LevelColor>();
+                    LevelType::Open(level_color)
+                }
+            }
         };
 
+        spawn_level_sun(new_level_type, &mut commands);
+        if let Ok(mut skybox) = skybox.get_single_mut() {
+            match new_level_type {
+                LevelType::Covered => {}
+                LevelType::Open(level_color) => {
+                    skybox.0 = level_color.skybox_image(level_assets.as_ref());
+                }
+            }
+        }
+
         let new_translation = spawn_level(
+            level_assets.as_ref(),
             level_resources.as_ref(),
             weapons_resources.as_ref(),
             enemies_resources.as_ref(),
@@ -378,7 +488,9 @@ fn level_delete_old(
             DoorAnimationType::Open => {}
             DoorAnimationType::Close => {
                 for object in level_state.old_level_objects.iter() {
-                    commands.get_entity(*object).unwrap().despawn_recursive();
+                    if let Some(e) = commands.get_entity(*object) {
+                        e.despawn_recursive();
+                    }
                 }
                 level_state.old_level_objects.clear();
             }

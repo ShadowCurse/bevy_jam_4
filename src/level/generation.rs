@@ -10,9 +10,9 @@ use crate::{
 
 use super::{
     door::{spawn_door, Door, DoorState, DoorType},
-    spawn_light, LevelColliderBundle, LevelObject, LevelResources, LevelType, COLUMN_HIGHT,
-    COLUMN_SIZE, FILL_AMOUNT, FLOOR_THICKNESS, GRID_SIZE, LEVEL_ENEMIES, LEVEL_LIGHTS_COVERAGE,
-    LEVEL_SIZE, LEVEL_WEAPON_SPAWNS, LIGHT_COLORS, STRIP_LENGTH,
+    spawn_light, LevelAssets, LevelColliderBundle, LevelObject, LevelResources, LevelType,
+    COLUMN_HIGHT, COLUMN_SIZE, FILL_AMOUNT, FLOOR_THICKNESS, GRID_SIZE, LEVEL_ENEMIES,
+    LEVEL_LIGHTS_COVERAGE, LEVEL_SIZE, LEVEL_WEAPON_SPAWNS, STRIP_LENGTH,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -221,6 +221,7 @@ fn generate_level(previus_door: Option<Door>) -> [[CellType; GRID_SIZE]; GRID_SI
 }
 
 pub fn spawn_level(
+    level_assets: &LevelAssets,
     level_resources: &LevelResources,
     weapons_resources: &WeaponsResources,
     enemies_resources: &EnemiesResources,
@@ -307,7 +308,9 @@ pub fn spawn_level(
                     spawn_fridge(enemies_resources, weapons_resources, commands, transform);
                 }
                 CellType::Player => {
-                    spawn_player(commands, transform);
+                    // we spanw player only once, so we can give him
+                    // some default skybox
+                    spawn_player(level_assets.normal_skybox.clone(), commands, transform);
                 }
                 CellType::Empty => {}
             }
@@ -337,27 +340,28 @@ pub fn spawn_level(
     level_translation
 }
 
-pub fn spawn_level_sun(commands: &mut Commands) {
-    let mut rng = rand::thread_rng();
-    let color = LIGHT_COLORS[rng.gen_range(0..LIGHT_COLORS.len())];
-
-    let rotation_x = rng.gen_range(std::f32::consts::FRAC_PI_8..std::f32::consts::FRAC_2_PI);
-    let rotation_z = rng.gen_range(std::f32::consts::FRAC_PI_8..std::f32::consts::FRAC_2_PI);
-    // directional 'sun' light
-    commands.spawn((
-        DirectionalLightBundle {
-            directional_light: DirectionalLight {
-                shadows_enabled: true,
-                color,
-                ..default()
-            },
-            transform: Transform {
-                translation: Vec3::new(0.0, 2.0, 0.0),
-                rotation: Quat::from_rotation_x(-rotation_x) * Quat::from_rotation_z(-rotation_z),
-                ..default()
-            },
-            ..default()
-        },
-        LevelObject,
-    ));
+pub fn spawn_level_sun(level_type: LevelType, commands: &mut Commands) {
+    match level_type {
+        LevelType::Covered => {}
+        LevelType::Open(level_color) => {
+            // directional 'sun' light
+            commands.spawn((
+                DirectionalLightBundle {
+                    directional_light: DirectionalLight {
+                        shadows_enabled: true,
+                        color: level_color.into(),
+                        ..default()
+                    },
+                    transform: Transform {
+                        translation: Vec3::new(0.0, 2.0, 0.0),
+                        rotation: Quat::from_rotation_z(-std::f32::consts::FRAC_PI_4)
+                            * Quat::from_rotation_x(-std::f32::consts::FRAC_PI_4),
+                        ..default()
+                    },
+                    ..default()
+                },
+                LevelObject,
+            ));
+        }
+    }
 }

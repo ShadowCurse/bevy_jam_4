@@ -60,6 +60,7 @@ fn main() {
         color: Color::WHITE,
         brightness: 0.1,
     });
+    app.insert_resource(ClearColor(Color::BLACK));
 
     app.insert_resource(RapierConfiguration {
         gravity: Vec3::NEG_Z * 9.81,
