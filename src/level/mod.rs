@@ -15,7 +15,7 @@ use crate::{
     player::{Player, PlayerResources},
     ui::UiResources,
     utils::remove_all_with,
-    weapons::{Projectile, WeaponsResources},
+    weapons::{Projectile, WeaponsAssets},
     GlobalState, COLLISION_GROUP_ENEMY, COLLISION_GROUP_LEVEL, COLLISION_GROUP_PLAYER,
     COLLISION_GROUP_PROJECTILES,
 };
@@ -38,7 +38,7 @@ const FILL_AMOUNT: f32 = 0.02;
 const STRIP_LENGTH: u32 = 3;
 
 const LEVEL_WEAPON_SPAWNS: u32 = 4;
-const LEVEL_ENEMIES: u32 = 1;
+const LEVEL_ENEMIES: u32 = 0;
 
 const LEVEL_LIGHTS_COVERAGE: f64 = 0.2;
 const LIGHT_SIZE: f32 = 1.0;
@@ -385,18 +385,18 @@ fn resume_physics(mut physics: ResMut<RapierConfiguration>) {
 fn spawn_initial_level(
     ui_resources: Res<UiResources>,
     level_assets: Res<LevelAssets>,
+    weapons_assets: Res<WeaponsAssets>,
     level_resources: Res<LevelResources>,
     player_resources: Res<PlayerResources>,
-    weapons_resources: Res<WeaponsResources>,
     enemies_resources: Res<EnemiesResources>,
     mut commands: Commands,
 ) {
     spawn_level(
         ui_resources.as_ref(),
         level_assets.as_ref(),
+        weapons_assets.as_ref(),
         level_resources.as_ref(),
         player_resources.as_ref(),
-        weapons_resources.as_ref(),
         enemies_resources.as_ref(),
         &mut commands,
         Vec3::ZERO,
@@ -433,9 +433,9 @@ fn level_progress(
 fn level_switch(
     ui_resources: Res<UiResources>,
     level_assets: Res<LevelAssets>,
+    weapons_assets: Res<WeaponsAssets>,
     level_resources: Res<LevelResources>,
     player_resources: Res<PlayerResources>,
-    weapons_resources: Res<WeaponsResources>,
     enemies_resources: Res<EnemiesResources>,
     level_objects: Query<Entity, With<LevelObject>>,
     mut skybox: Query<&mut Skybox>,
@@ -471,9 +471,9 @@ fn level_switch(
         let new_translation = spawn_level(
             ui_resources.as_ref(),
             level_assets.as_ref(),
+            weapons_assets.as_ref(),
             level_resources.as_ref(),
             player_resources.as_ref(),
-            weapons_resources.as_ref(),
             enemies_resources.as_ref(),
             &mut commands,
             level_info.translation,

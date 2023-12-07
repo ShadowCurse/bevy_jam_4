@@ -413,7 +413,6 @@ fn player_pick_up_weapon(
             continue;
         };
 
-        commands.get_entity(camera).unwrap().add_child(weapon);
         commands
             .get_entity(weapon)
             .unwrap()
@@ -424,17 +423,22 @@ fn player_pick_up_weapon(
                 bounce_speed: 4.0,
                 bounce_amplitude: 0.08,
             })
+            .insert(
+                Transform::default()
+                    .with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
+            )
             .remove::<FreeFloatingWeaponBundle>();
+        commands.get_entity(camera).unwrap().add_child(weapon);
     }
 }
 
 fn player_throw_weapon(
     keys: Res<Input<KeyCode>>,
-    player_camera: Query<Entity, With<PlayerCamera>>,
+    player_camera: Query<(Entity, &GlobalTransform), With<PlayerCamera>>,
     player_weapon_components: Query<(Entity, &GlobalTransform), With<PlayerWeapon>>,
     mut commands: Commands,
 ) {
-    let Ok(camera) = player_camera.get_single() else {
+    let Ok((camera, camera_global_transform)) = player_camera.get_single() else {
         return;
     };
 
@@ -455,13 +459,13 @@ fn player_throw_weapon(
             .insert((
                 Transform::from_translation(
                     weapon_global_transform.translation()
-                        + weapon_global_transform.forward() * PLAYER_THROW_OFFSET_SCALE,
+                        + camera_global_transform.forward() * PLAYER_THROW_OFFSET_SCALE,
                 )
                 .with_rotation(Quat::from_rotation_x(std::f32::consts::FRAC_PI_2)),
                 Collider::cuboid(0.6, 0.6, 0.3),
                 RigidBody::Dynamic,
                 Velocity {
-                    linvel: weapon_global_transform.forward() * PLAYER_THROW_STRENGTH,
+                    linvel: camera_global_transform.forward() * PLAYER_THROW_STRENGTH,
                     ..default()
                 },
             ));
@@ -470,12 +474,17 @@ fn player_throw_weapon(
 
 fn player_shoot(
     keys: Res<Input<KeyCode>>,
+    player_camera: Query<&GlobalTransform, With<PlayerCamera>>,
     mut player_weapon_components: Query<
         (Entity, &GlobalTransform, &WeaponAttackTimer, &mut Ammo),
         With<PlayerWeapon>,
     >,
     mut shoot_event: EventWriter<ShootEvent>,
 ) {
+    let Ok(camera_global_transform) = player_camera.get_single() else {
+        return;
+    };
+
     let Ok((weapon_entity, weapon_global_transform, weapon_attack_timer, mut ammo)) =
         player_weapon_components.get_single_mut()
     else {
@@ -488,7 +497,7 @@ fn player_shoot(
         shoot_event.send(ShootEvent {
             weapon_entity,
             weapon_translation: weapon_global_transform.translation(),
-            direction: weapon_global_transform.forward(),
+            direction: camera_global_transform.forward(),
         });
     }
 }
@@ -679,7 +688,7 @@ fn player_weapon_update(
     let Ok((mut weapon_transform, mut player_weapon)) = weapon.get_single_mut() else {
         return;
     };
-    weapon_transform.rotation = Quat::IDENTITY;
+    // weapon_transform.rotation = Quat::IDENTITY;
 
     let bounce = player_weapon.bounce_progress.sin();
     let offset = Vec3::new(

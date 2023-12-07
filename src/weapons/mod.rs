@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy_asset_loader::prelude::*;
 use bevy_rapier3d::prelude::*;
 
 use crate::{
@@ -9,6 +10,8 @@ use crate::{
 pub mod pistol;
 
 const DEFAULT_PROJECTILE_SIZE: f32 = 0.2;
+const DEFAULT_CLIP_SIZE: f32 = 0.01;
+const DEFAULT_CLIP_LENGTH: f32 = 0.02;
 
 const FREE_FLOATING_WEAPON_COLLIDER_RADIUS: f32 = 0.8;
 const FREE_FLOATING_WEAPON_ROTATION_SPEED: f32 = 0.4;
@@ -19,6 +22,8 @@ pub struct WeaponsPlugin;
 
 impl Plugin for WeaponsPlugin {
     fn build(&self, app: &mut App) {
+        app.add_collection_to_loading_state::<_, WeaponsAssets>(GlobalState::AssetLoading);
+
         app.add_event::<ShootEvent>();
 
         app.add_plugins(pistol::PistolPlugin);
@@ -43,12 +48,18 @@ impl Plugin for WeaponsPlugin {
     }
 }
 
+#[derive(AssetCollection, Resource)]
+pub struct WeaponsAssets {
+    #[asset(path = "pistol/pistol.glb#Scene0")]
+    pub pistol_scene: Handle<Scene>,
+    #[asset(path = "pistol/pistol_round.glb#Scene0")]
+    pub pistol_clip_scene: Handle<Scene>,
+}
+
 #[derive(Resource)]
 pub struct WeaponsResources {
     pub projectile_mesh: Handle<Mesh>,
     pub projectile_material: Handle<StandardMaterial>,
-    pub pistol_mesh: Handle<Mesh>,
-    pub pistol_material: Handle<StandardMaterial>,
 }
 
 #[derive(Component)]
@@ -70,16 +81,16 @@ pub struct Projectile;
 
 #[derive(Bundle)]
 pub struct ProjectileBundle {
-    pbr_bundle: PbrBundle,
-    rigid_body: RigidBody,
-    collider: Collider,
-    collision_groups: CollisionGroups,
-    active_events: ActiveEvents,
-    velocity: Velocity,
-    projectile: Projectile,
-    damage: Damage,
+    pub pbr_bundle: PbrBundle,
+    pub rigid_body: RigidBody,
+    pub collider: Collider,
+    pub collision_groups: CollisionGroups,
+    pub active_events: ActiveEvents,
+    pub velocity: Velocity,
+    pub projectile: Projectile,
+    pub damage: Damage,
 
-    level_object: LevelObject,
+    pub level_object: LevelObject,
 }
 
 impl Default for ProjectileBundle {
@@ -96,6 +107,34 @@ impl Default for ProjectileBundle {
             velocity: Velocity::default(),
             projectile: Projectile,
             damage: Damage::default(),
+
+            level_object: LevelObject,
+        }
+    }
+}
+
+#[derive(Bundle)]
+pub struct ClipBundle {
+    pub scene_bundle: SceneBundle,
+    pub rigid_body: RigidBody,
+    pub collider: Collider,
+    pub velocity: Velocity,
+    pub friction: Friction,
+
+    pub level_object: LevelObject,
+}
+
+impl Default for ClipBundle {
+    fn default() -> Self {
+        Self {
+            scene_bundle: SceneBundle::default(),
+            rigid_body: RigidBody::Dynamic,
+            collider: Collider::cuboid(DEFAULT_CLIP_LENGTH, DEFAULT_CLIP_SIZE, DEFAULT_CLIP_SIZE),
+            velocity: Velocity::default(),
+            friction: Friction {
+                coefficient: 100.0,
+                ..default()
+            },
 
             level_object: LevelObject,
         }
@@ -170,15 +209,10 @@ fn init_resources(
         .into(),
     );
     let projectile_material = materials.add(Color::GOLD.into());
-    // forward = -Z
-    let pistol_mesh = meshes.add(shape::Box::new(0.1, 0.2, 1.5).into());
-    let pistol_material = materials.add(Color::GREEN.into());
 
     commands.insert_resource(WeaponsResources {
         projectile_mesh,
         projectile_material,
-        pistol_mesh,
-        pistol_material,
     });
 }
 

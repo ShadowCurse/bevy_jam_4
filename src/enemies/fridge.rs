@@ -7,7 +7,7 @@ use crate::{
     player::Player,
     weapons::{
         pistol::{PistolBundle, PistolModel},
-        FreeFloatingWeaponBundle, ShootEvent, WeaponAttackTimer, WeaponsResources,
+        FreeFloatingWeaponBundle, ShootEvent, WeaponAttackTimer, WeaponsAssets,
     },
     GlobalState,
 };
@@ -31,7 +31,7 @@ const FRIDGE_DEATH_GAP_DELTA_Y: f32 = FRIDGE_DEATH_GAP_Y / FRIDGE_PARTS_Y as f32
 const FRIDGE_DEATH_GAP_DELTA_Z: f32 = FRIDGE_DEATH_GAP_Z / FRIDGE_PARTS_Z as f32;
 const FRIDGE_DEATH_PULSE_STENGTH: f32 = 0.8;
 
-const FRIDGE_HEALTH: i32 = 100000;
+const FRIDGE_HEALTH: i32 = 100;
 const FRIDGE_SPEED: f32 = 15.0;
 const FRIDGE_MIN_DISTANCE: f32 = 200.0;
 const FRIDGE_WEAPON_OFFSET: Vec3 = Vec3::new(2.0, -2.0, 0.5);
@@ -88,8 +88,8 @@ impl FridgeBuldle {
 }
 
 pub fn spawn_fridge(
+    weapons_assets: &WeaponsAssets,
     enemies_resources: &EnemiesResources,
-    weapons_resources: &WeaponsResources,
     commands: &mut Commands,
     transform: Transform,
 ) {
@@ -107,9 +107,9 @@ pub fn spawn_fridge(
         ))
         .with_children(|builder| {
             builder.spawn((
-                PbrBundle {
-                    mesh: weapons_resources.pistol_mesh.clone(),
-                    material: weapons_resources.pistol_material.clone(),
+                SceneBundle {
+                    scene: weapons_assets.pistol_scene.clone(),
+                    transform: Transform::from_scale(Vec3::new(0.5, 0.5, 0.5)),
                     ..default()
                 },
                 PistolModel,

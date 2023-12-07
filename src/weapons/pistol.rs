@@ -4,8 +4,8 @@ use bevy_rapier3d::prelude::*;
 use crate::{damage::Damage, GlobalState};
 
 use super::{
-    Ammo, FreeFloatingWeaponBundle, ProjectileBundle, ShootEvent, WeaponAttackTimer,
-    WeaponShootAnimation, WeaponsResources,
+    Ammo, ClipBundle, FreeFloatingWeaponBundle, ProjectileBundle, ShootEvent, WeaponAttackTimer,
+    WeaponShootAnimation, WeaponsAssets, WeaponsResources,
 };
 
 const PISTOL_AMMO: u32 = 10;
@@ -20,6 +20,8 @@ const PISTOL_PROJECTILE_OFFSET_SCALE: f32 = 2.0;
 const PISTOL_ANIMATION_SPEED: f32 = 10.0;
 const PISTOL_ANIMATION_TARGET_OFFSET: Vec3 = Vec3::new(0.2, 0.2, 0.0);
 const PISTOL_ANIMATION_TARGET_ROTATION_X: f32 = std::f32::consts::FRAC_PI_8;
+
+const PISTOL_CLIP_INITIAL_VELOCITY: f32 = 10.0;
 
 pub struct PistolPlugin;
 
@@ -59,11 +61,7 @@ impl Default for PistolBundle {
     }
 }
 
-pub fn spawn_pistol(
-    weapons_resources: &WeaponsResources,
-    commands: &mut Commands,
-    transform: Transform,
-) {
+pub fn spawn_pistol(weapons_assets: &WeaponsAssets, commands: &mut Commands, transform: Transform) {
     // let transform = transform.with_rotation(Quat::from_rotation_x(std::f32::consts::FRAC_PI_2));
     commands
         .spawn((
@@ -75,9 +73,9 @@ pub fn spawn_pistol(
         ))
         .with_children(|builder| {
             builder.spawn((
-                PbrBundle {
-                    mesh: weapons_resources.pistol_mesh.clone(),
-                    material: weapons_resources.pistol_material.clone(),
+                SceneBundle {
+                    scene: weapons_assets.pistol_scene.clone(),
+                    transform: Transform::from_scale(Vec3::new(0.5, 0.5, 0.5)),
                     ..default()
                 },
                 PistolModel,
@@ -87,6 +85,7 @@ pub fn spawn_pistol(
 
 fn shoot_pistol(
     pistols: Query<&Children, With<Pistol>>,
+    weapons_assets: Res<WeaponsAssets>,
     weapons_resources: Res<WeaponsResources>,
     mut commands: Commands,
     mut shoot_event: EventReader<ShootEvent>,
@@ -108,6 +107,22 @@ fn shoot_pistol(
                 },
                 damage: Damage {
                     damage: PISTOL_DAMAGE,
+                },
+                ..default()
+            });
+
+            // spawn clip
+            let clip_direction = e.direction.cross(Vec3::Z);
+            commands.spawn(ClipBundle {
+                scene_bundle: SceneBundle {
+                    scene: weapons_assets.pistol_clip_scene.clone(),
+                    transform: Transform::from_translation(e.weapon_translation)
+                        .with_scale(Vec3::new(2.0, 2.0, 2.0)),
+                    ..default()
+                },
+                velocity: Velocity {
+                    linvel: clip_direction * PISTOL_CLIP_INITIAL_VELOCITY,
+                    ..default()
                 },
                 ..default()
             });

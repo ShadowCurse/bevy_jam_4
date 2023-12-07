@@ -6,7 +6,7 @@ use crate::{
     enemies::{fridge::spawn_fridge, EnemiesResources},
     player::{spawn_player, PlayerResources},
     ui::UiResources,
-    weapons::{pistol::spawn_pistol, WeaponsResources},
+    weapons::{pistol::spawn_pistol, WeaponsAssets},
 };
 
 use super::{
@@ -224,9 +224,9 @@ fn generate_level(previus_door: Option<Door>) -> [[CellType; GRID_SIZE]; GRID_SI
 pub fn spawn_level(
     ui_resources: &UiResources,
     level_assets: &LevelAssets,
+    weapons_assets: &WeaponsAssets,
     level_resources: &LevelResources,
     player_resources: &PlayerResources,
-    weapons_resources: &WeaponsResources,
     enemies_resources: &EnemiesResources,
     commands: &mut Commands,
     level_translation: Vec3,
@@ -305,10 +305,10 @@ pub fn spawn_level(
                     }
                 }
                 CellType::Weapon => {
-                    spawn_pistol(weapons_resources, commands, transform);
+                    spawn_pistol(weapons_assets, commands, transform);
                 }
                 CellType::Enemy => {
-                    spawn_fridge(enemies_resources, weapons_resources, commands, transform);
+                    spawn_fridge(weapons_assets, enemies_resources, commands, transform);
                 }
                 CellType::Player => {
                     // we spanw player only once, so we can give him

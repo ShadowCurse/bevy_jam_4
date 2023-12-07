@@ -23,7 +23,7 @@ default = []
 dylib = ["bevy/dynamic_linking"]
 
 [dependencies]
-bevy = { version = "0.12" }
+bevy = { version = "0.12", features = ["jpeg"] }
 bevy_asset_loader = "0.18.0"
 bevy_rapier3d = { version = "0.23.0", features = ["simd-stable", "debug-render"] }
 rand = "0.8.5"
