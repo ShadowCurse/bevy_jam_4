@@ -4,7 +4,8 @@ use bevy_rapier3d::prelude::*;
 use crate::{damage::Damage, GlobalState};
 
 use super::{
-    FreeFloatingWeaponBundle, ProjectileBundle, ShootEvent, WeaponAttackTimer, WeaponsResources,
+    Ammo, FreeFloatingWeaponBundle, ProjectileBundle, ShootEvent, WeaponAttackTimer,
+    WeaponsResources,
 };
 
 const PISTOL_AMMO: u32 = 10;
@@ -25,14 +26,13 @@ impl Plugin for PistolPlugin {
 }
 
 #[derive(Component)]
-pub struct Pistol {
-    pub ammo: u32,
-}
+pub struct Pistol;
 
 #[derive(Bundle)]
 pub struct PistolBundle {
     pbr: PbrBundle,
     pistol: Pistol,
+    ammo: Ammo,
     weapon: WeaponAttackTimer,
 }
 
@@ -45,7 +45,8 @@ impl PistolBundle {
                 transform,
                 ..default()
             },
-            pistol: Pistol { ammo: PISTOL_AMMO },
+            pistol: Pistol,
+            ammo: Ammo { ammo: PISTOL_AMMO },
             weapon: WeaponAttackTimer::new(PISTOL_ATTACK_SPEED),
         }
     }

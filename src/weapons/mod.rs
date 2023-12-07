@@ -51,6 +51,11 @@ pub struct WeaponsResources {
 }
 
 #[derive(Component)]
+pub struct Ammo {
+    pub ammo: u32,
+}
+
+#[derive(Component)]
 pub struct Projectile;
 
 #[derive(Bundle)]

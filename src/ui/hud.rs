@@ -1,6 +1,12 @@
 use bevy::prelude::*;
 
-use crate::{damage::Health, player::Player, utils::remove_all_with, UiState};
+use crate::{
+    damage::Health,
+    player::{Player, PlayerWeapon},
+    utils::remove_all_with,
+    weapons::Ammo,
+    UiState,
+};
 
 use super::UiConfig;
 
@@ -114,9 +120,15 @@ fn setup_main_menu(mut commands: Commands, config: Res<UiConfig>) {
         });
 }
 
-fn update_player_ammo(mut window_mode_text: Query<&mut Text, With<HudPlayerAmmo>>) {
+fn update_player_ammo(
+    player_ammo: Query<&Ammo, With<PlayerWeapon>>,
+    mut window_mode_text: Query<&mut Text, With<HudPlayerAmmo>>,
+) {
     let mut text = window_mode_text.single_mut();
-    text.sections[0].value = format!("---");
+    match player_ammo.get_single() {
+        Ok(ammo) => text.sections[0].value = format!("{}", ammo.ammo),
+        Err(_) => text.sections[0].value = format!("---"),
+    }
 }
 
 fn update_plyaer_hp(

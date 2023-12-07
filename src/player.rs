@@ -4,7 +4,7 @@ use bevy_rapier3d::{prelude::*, rapier::geometry::CollisionEventFlags};
 use crate::{
     damage::{Health, KillEvent},
     ui::UiResources,
-    weapons::{FreeFloatingWeapon, FreeFloatingWeaponBundle, ShootEvent, WeaponAttackTimer},
+    weapons::{Ammo, FreeFloatingWeapon, FreeFloatingWeaponBundle, ShootEvent, WeaponAttackTimer},
     GlobalState, COLLISION_GROUP_LEVEL, COLLISION_GROUP_PICKUP, COLLISION_GROUP_PLAYER,
     COLLISION_GROUP_PROJECTILES,
 };
@@ -462,19 +462,21 @@ fn player_throw_weapon(
 
 fn player_shoot(
     keys: Res<Input<KeyCode>>,
-    player_weapon_components: Query<
-        (Entity, &GlobalTransform, &WeaponAttackTimer),
+    mut player_weapon_components: Query<
+        (Entity, &GlobalTransform, &WeaponAttackTimer, &mut Ammo),
         With<PlayerWeapon>,
     >,
     mut shoot_event: EventWriter<ShootEvent>,
 ) {
-    let Ok((weapon_entity, weapon_global_transform, weapon_attack_timer)) =
-        player_weapon_components.get_single()
+    let Ok((weapon_entity, weapon_global_transform, weapon_attack_timer, mut ammo)) =
+        player_weapon_components.get_single_mut()
     else {
         return;
     };
 
-    if keys.pressed(KeyCode::Space) && weapon_attack_timer.attack_timer.finished() {
+    if keys.pressed(KeyCode::Space) && weapon_attack_timer.attack_timer.finished() && ammo.ammo != 0
+    {
+        ammo.ammo -= 1;
         shoot_event.send(ShootEvent {
             weapon_entity,
             weapon_translation: weapon_global_transform.translation(),
