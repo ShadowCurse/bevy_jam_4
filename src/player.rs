@@ -2,22 +2,43 @@ use bevy::{core_pipeline::Skybox, input::mouse::MouseMotion, prelude::*};
 use bevy_rapier3d::{prelude::*, rapier::geometry::CollisionEventFlags};
 
 use crate::{
-    level::LevelAssets,
+    ui::UiResources,
     weapons::{FreeFloatingWeapon, FreeFloatingWeaponBundle, ShootEvent, WeaponAttackTimer},
     GlobalState, COLLISION_GROUP_LEVEL, COLLISION_GROUP_PICKUP, COLLISION_GROUP_PLAYER,
 };
 
-const PLAYER_WEAPON_DEFAULT_TRANSLATION: Vec3 = Vec3::new(0.0, -0.5, -1.4);
+const PLAYER_WEAPON_DEFAULT_TRANSLATION: Vec3 = Vec3::new(0.2, -0.5, -1.4);
 const PLAYER_THROW_OFFSET_SCALE: f32 = 10.0;
 const PLAYER_THROW_STRENGTH: f32 = 20.0;
+
+const PLAYER_HUD_ANIMATION_SPEED: f32 = 5.0;
+const PLAYER_HUD_ON_TRANSLATION: Vec3 = Vec3::new(0.0, 0.0, -0.45);
+const PLAYER_HUD_OFF_TRANSLATION: Vec3 = Vec3::new(-0.5, -0.3, -1.5);
+const PLAYER_HUD_OFF_ROTATION_Y: f32 = std::f32::consts::FRAC_PI_4;
+const PLAYER_HUD_OFF_ROTATION_X: f32 = -std::f32::consts::FRAC_PI_8;
 
 pub struct PlayerPlugin;
 
 impl Plugin for PlayerPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
+            OnTransition {
+                from: GlobalState::AssetLoading,
+                to: GlobalState::MainMenu,
+            },
+            init_resources,
+        );
+
+        app.add_systems(OnEnter(GlobalState::InGame), player_toggle_hud_off);
+        app.add_systems(OnEnter(GlobalState::Paused), player_toggle_hud_on);
+        app.add_systems(OnEnter(GlobalState::GameOver), player_toggle_hud_on);
+
+        app.add_systems(Update, player_hud_animation);
+
+        app.add_systems(
             Update,
             (
+                player_hud_animation,
                 player_trigger_pause,
                 player_shoot,
                 player_pick_up_weapon,
@@ -31,6 +52,14 @@ impl Plugin for PlayerPlugin {
                 .run_if(in_state(GlobalState::InGame)),
         );
     }
+}
+
+#[derive(Resource)]
+pub struct PlayerResources {
+    pub hud_tablet_mesh: Handle<Mesh>,
+    pub hud_tablet_material: Handle<StandardMaterial>,
+    pub hud_tablet_arm_mesh: Handle<Mesh>,
+    pub hud_tablet_arm_material: Handle<StandardMaterial>,
 }
 
 #[derive(Component)]
@@ -65,6 +94,16 @@ pub struct PlayerCamera {
 struct PlayerTestCamera;
 
 #[derive(Component)]
+struct PlayerHud;
+
+#[derive(Component)]
+struct PlayerHudAnimation {
+    progress: f32,
+    initial_transform: Transform,
+    target_transform: Transform,
+}
+
+#[derive(Component)]
 pub struct PlayerWeapon {
     pub default_translation: Vec3,
 
@@ -74,7 +113,13 @@ pub struct PlayerWeapon {
     pub bounce_amplitude: f32,
 }
 
-pub fn spawn_player(skybox_image: Handle<Image>, commands: &mut Commands, transform: Transform) {
+pub fn spawn_player(
+    ui_resources: &UiResources,
+    player_resources: &PlayerResources,
+    skybox_image: Handle<Image>,
+    commands: &mut Commands,
+    transform: Transform,
+) {
     let id = commands
         .spawn((
             TransformBundle::from_transform(transform),
@@ -96,27 +141,61 @@ pub fn spawn_player(skybox_image: Handle<Image>, commands: &mut Commands, transf
             },
         ))
         .with_children(|builder| {
-            builder.spawn((
-                Camera3dBundle {
-                    transform: Transform::from_xyz(0.0, 0.0, 2.0)
-                        .looking_at(Vec3::new(0.0, 1.0, 2.0), Vec3::Z),
-                    ..default()
-                },
-                Skybox(skybox_image),
-                PlayerCamera {
-                    default_translation: Vec3::new(0.0, 0.0, 2.0),
-                    rotation_speed: 5.0,
+            builder
+                .spawn((
+                    Camera3dBundle {
+                        transform: Transform::from_xyz(0.0, 0.0, 2.0)
+                            .looking_at(Vec3::new(0.0, 1.0, 2.0), Vec3::Z),
+                        ..default()
+                    },
+                    UiCameraConfig { show_ui: false },
+                    Skybox(skybox_image),
+                    PlayerCamera {
+                        default_translation: Vec3::new(0.0, 0.0, 2.0),
+                        rotation_speed: 5.0,
 
-                    bounce_continue: false,
-                    bounce_progress: 0.0,
-                    bounce_speed: 8.0,
+                        bounce_continue: false,
+                        bounce_progress: 0.0,
+                        bounce_speed: 8.0,
 
-                    bounce_amplitude: 0.2,
-                    bounce_amplitude_modifier: 1.0,
-                    bounce_amplitude_modifier_speed: 1.0,
-                    bounce_amplitude_modifier_max: 2.0,
-                },
-            ));
+                        bounce_amplitude: 0.2,
+                        bounce_amplitude_modifier: 1.0,
+                        bounce_amplitude_modifier_speed: 1.0,
+                        bounce_amplitude_modifier_max: 2.0,
+                    },
+                ))
+                .with_children(|builder| {
+                    // Tablet
+                    builder
+                        .spawn((
+                            PbrBundle {
+                                mesh: player_resources.hud_tablet_mesh.clone(),
+                                material: player_resources.hud_tablet_material.clone(),
+                                transform: Transform::from_translation(PLAYER_HUD_ON_TRANSLATION),
+                                ..default()
+                            },
+                            PlayerHud,
+                        ))
+                        .with_children(|builder| {
+                            // UI window
+                            builder.spawn((PbrBundle {
+                                mesh: ui_resources.mesh.clone(),
+                                material: ui_resources.material.clone(),
+                                transform: Transform::from_translation(Vec3::new(0.0, 0.0, 0.06)),
+                                ..default()
+                            },));
+                            // Tablet arm
+                            builder.spawn((PbrBundle {
+                                mesh: player_resources.hud_tablet_arm_mesh.clone(),
+                                material: player_resources.hud_tablet_arm_material.clone(),
+                                transform: Transform::from_translation(Vec3::new(-0.2, -0.3, -0.1))
+                                    .with_rotation(Quat::from_rotation_z(
+                                        -std::f32::consts::FRAC_PI_8,
+                                    )),
+                                ..default()
+                            },));
+                        });
+                });
 
             builder.spawn((
                 Camera3dBundle {
@@ -137,12 +216,120 @@ pub fn spawn_player(skybox_image: Handle<Image>, commands: &mut Commands, transf
     commands.entity(id).log_components();
 }
 
+fn init_resources(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
+    let aspect_ration = 1280.0 / 720.0;
+    let holder_width = 0.6;
+    let holder_hight = holder_width / aspect_ration;
+    let hud_tablet_mesh = meshes.add(shape::Box::new(holder_width, holder_hight, 0.1).into());
+    let hud_tablet_material = materials.add(StandardMaterial {
+        base_color: Color::GOLD,
+        perceptual_roughness: 0.9,
+        ..default()
+    });
+
+    let hud_tablet_arm_mesh = meshes.add(shape::Box::new(0.2, 1.0, 0.1).into());
+    let hud_tablet_arm_material = materials.add(StandardMaterial {
+        base_color: Color::YELLOW_GREEN,
+        perceptual_roughness: 0.9,
+        ..default()
+    });
+
+    commands.insert_resource(PlayerResources {
+        hud_tablet_mesh,
+        hud_tablet_material,
+        hud_tablet_arm_mesh,
+        hud_tablet_arm_material,
+    })
+}
+
 fn player_trigger_pause(
     keys: Res<Input<KeyCode>>,
     mut global_state: ResMut<NextState<GlobalState>>,
 ) {
     if keys.just_pressed(KeyCode::Escape) {
         global_state.set(GlobalState::Paused);
+    }
+}
+
+fn player_toggle_hud_on(
+    hud: Query<Entity, (With<PlayerHud>, Without<PlayerHudAnimation>)>,
+    mut commands: Commands,
+) {
+    let Ok(hud) = hud.get_single() else {
+        return;
+    };
+
+    let target_transform = Transform::from_translation(PLAYER_HUD_ON_TRANSLATION);
+    let initial_transform = Transform::from_translation(PLAYER_HUD_OFF_TRANSLATION).with_rotation(
+        Quat::from_rotation_y(PLAYER_HUD_OFF_ROTATION_Y)
+            * Quat::from_rotation_x(PLAYER_HUD_OFF_ROTATION_X),
+    );
+
+    let Some(mut e) = commands.get_entity(hud) else {
+        return;
+    };
+
+    e.insert(PlayerHudAnimation {
+        progress: 0.0,
+        initial_transform,
+        target_transform,
+    });
+}
+
+fn player_toggle_hud_off(
+    hud: Query<Entity, (With<PlayerHud>, Without<PlayerHudAnimation>)>,
+    mut commands: Commands,
+) {
+    let Ok(hud) = hud.get_single() else {
+        return;
+    };
+
+    let initial_transform = Transform::from_translation(PLAYER_HUD_ON_TRANSLATION);
+    let target_transform = Transform::from_translation(PLAYER_HUD_OFF_TRANSLATION).with_rotation(
+        Quat::from_rotation_y(PLAYER_HUD_OFF_ROTATION_Y)
+            * Quat::from_rotation_x(PLAYER_HUD_OFF_ROTATION_X),
+    );
+
+    let Some(mut e) = commands.get_entity(hud) else {
+        return;
+    };
+
+    e.insert(PlayerHudAnimation {
+        progress: 0.0,
+        initial_transform,
+        target_transform,
+    });
+}
+
+fn player_hud_animation(
+    time: Res<Time>,
+    mut commands: Commands,
+    mut animated_hud: Query<(Entity, &mut PlayerHudAnimation, &mut Transform), With<PlayerHud>>,
+) {
+    let Ok((hud, mut hud_animation, mut hud_transform)) = animated_hud.get_single_mut() else {
+        return;
+    };
+
+    hud_animation.progress += time.delta_seconds() * PLAYER_HUD_ANIMATION_SPEED;
+    hud_transform.translation = hud_animation.initial_transform.translation.lerp(
+        hud_animation.target_transform.translation,
+        hud_animation.progress,
+    );
+    hud_transform.rotation = hud_animation.initial_transform.rotation.lerp(
+        hud_animation.target_transform.rotation,
+        hud_animation.progress,
+    );
+
+    if 1.0 <= hud_animation.progress {
+        println!("hud animation finished");
+        let Some(mut e) = commands.get_entity(hud) else {
+            return;
+        };
+        e.remove::<PlayerHudAnimation>();
     }
 }
 

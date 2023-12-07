@@ -12,7 +12,8 @@ use rand::{
 
 use crate::{
     enemies::{EnemiesResources, Enemy},
-    player::Player,
+    player::{Player, PlayerResources},
+    ui::UiResources,
     utils::remove_all_with,
     weapons::{Projectile, WeaponsResources},
     GlobalState, COLLISION_GROUP_ENEMY, COLLISION_GROUP_LEVEL, COLLISION_GROUP_PLAYER,
@@ -381,15 +382,19 @@ fn resume_physics(mut physics: ResMut<RapierConfiguration>) {
 }
 
 fn spawn_initial_level(
+    ui_resources: Res<UiResources>,
     level_assets: Res<LevelAssets>,
     level_resources: Res<LevelResources>,
+    player_resources: Res<PlayerResources>,
     weapons_resources: Res<WeaponsResources>,
     enemies_resources: Res<EnemiesResources>,
     mut commands: Commands,
 ) {
     spawn_level(
+        ui_resources.as_ref(),
         level_assets.as_ref(),
         level_resources.as_ref(),
+        player_resources.as_ref(),
         weapons_resources.as_ref(),
         enemies_resources.as_ref(),
         &mut commands,
@@ -425,8 +430,10 @@ fn level_progress(
 }
 
 fn level_switch(
+    ui_resources: Res<UiResources>,
     level_assets: Res<LevelAssets>,
     level_resources: Res<LevelResources>,
+    player_resources: Res<PlayerResources>,
     weapons_resources: Res<WeaponsResources>,
     enemies_resources: Res<EnemiesResources>,
     level_objects: Query<Entity, With<LevelObject>>,
@@ -461,8 +468,10 @@ fn level_switch(
         }
 
         let new_translation = spawn_level(
+            ui_resources.as_ref(),
             level_assets.as_ref(),
             level_resources.as_ref(),
+            player_resources.as_ref(),
             weapons_resources.as_ref(),
             enemies_resources.as_ref(),
             &mut commands,

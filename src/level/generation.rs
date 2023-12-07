@@ -4,7 +4,8 @@ use rand::Rng;
 
 use crate::{
     enemies::{fridge::spawn_fridge, EnemiesResources},
-    player::spawn_player,
+    player::{spawn_player, PlayerResources},
+    ui::UiResources,
     weapons::{pistol::spawn_pistol, WeaponsResources},
 };
 
@@ -221,8 +222,10 @@ fn generate_level(previus_door: Option<Door>) -> [[CellType; GRID_SIZE]; GRID_SI
 }
 
 pub fn spawn_level(
+    ui_resources: &UiResources,
     level_assets: &LevelAssets,
     level_resources: &LevelResources,
+    player_resources: &PlayerResources,
     weapons_resources: &WeaponsResources,
     enemies_resources: &EnemiesResources,
     commands: &mut Commands,
@@ -310,7 +313,13 @@ pub fn spawn_level(
                 CellType::Player => {
                     // we spanw player only once, so we can give him
                     // some default skybox
-                    spawn_player(level_assets.normal_skybox.clone(), commands, transform);
+                    spawn_player(
+                        ui_resources,
+                        player_resources,
+                        level_assets.normal_skybox.clone(),
+                        commands,
+                        transform,
+                    );
                 }
                 CellType::Empty => {}
             }
