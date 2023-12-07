@@ -118,6 +118,7 @@ impl Plugin for LevelPlugin {
                 to: GlobalState::InGame,
             },
             (
+                resume_physics,
                 remove_all_with::<LevelObject>,
                 remove_all_with::<Player>,
                 spawn_initial_level,

@@ -15,6 +15,7 @@ use bevy_asset_loader::prelude::*;
 
 use crate::{utils::set_state, GlobalState, UiState};
 
+mod game_over;
 mod hud;
 mod main_menu;
 mod options;
@@ -26,6 +27,7 @@ impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
         app.add_collection_to_loading_state::<_, UiAssets>(GlobalState::AssetLoading);
 
+        app.add_plugins(game_over::GameOverPlugin);
         app.add_plugins(hud::HudPlugin);
         app.add_plugins(main_menu::MainMenuPlugin);
         app.add_plugins(options::OptionsPlugin);
@@ -81,6 +83,21 @@ impl Plugin for UiPlugin {
                 to: GlobalState::GameOver,
             },
             set_state::<UiState, { UiState::GameOver as u8 }>,
+        );
+
+        app.add_systems(
+            OnTransition {
+                from: GlobalState::GameOver,
+                to: GlobalState::InGame,
+            },
+            set_state::<UiState, { UiState::Hud as u8 }>,
+        );
+        app.add_systems(
+            OnTransition {
+                from: GlobalState::GameOver,
+                to: GlobalState::MainMenu,
+            },
+            set_state::<UiState, { UiState::MainMenu as u8 }>,
         );
     }
 }
