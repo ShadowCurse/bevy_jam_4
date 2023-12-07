@@ -15,6 +15,7 @@ use bevy_asset_loader::prelude::*;
 
 use crate::{utils::set_state, GlobalState, UiState};
 
+mod hud;
 mod main_menu;
 mod options;
 mod pause;
@@ -25,6 +26,7 @@ impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
         app.add_collection_to_loading_state::<_, UiAssets>(GlobalState::AssetLoading);
 
+        app.add_plugins(hud::HudPlugin);
         app.add_plugins(main_menu::MainMenuPlugin);
         app.add_plugins(options::OptionsPlugin);
         app.add_plugins(pause::PausePlugin);
@@ -113,6 +115,11 @@ pub struct UiConfig {
 
     pub created_by_style: Style,
     pub created_by_text_style: TextStyle,
+
+    pub hud_style: Style,
+    pub hud_columns_style: Style,
+    pub hud_big_text_style: TextStyle,
+    pub hud_normal_text_style: TextStyle,
 }
 
 #[derive(Resource)]
@@ -223,8 +230,6 @@ fn setup_ui_config(ui_assets: Res<UiAssets>, mut commands: Commands) {
 
         menu_style: Style {
             display: Display::Grid,
-            // width: Val::Percent(100.0),
-            // height: Val::Percent(80.0),
             margin: UiRect::all(Val::Auto),
             justify_self: JustifySelf::Center,
             align_items: AlignItems::Center,
@@ -267,6 +272,31 @@ fn setup_ui_config(ui_assets: Res<UiAssets>, mut commands: Commands) {
         created_by_text_style: TextStyle {
             font: ui_assets.font.clone(),
             font_size: 35.0,
+            color: Color::WHITE,
+        },
+
+        hud_style: Style {
+            justify_self: JustifySelf::Center,
+            align_items: AlignItems::Center,
+            align_self: AlignSelf::Center,
+            column_gap: Val::Percent(30.0),
+            ..default()
+        },
+        hud_columns_style: Style {
+            display: Display::Grid,
+            justify_self: JustifySelf::Center,
+            justify_content: JustifyContent::Center,
+            align_items: AlignItems::Center,
+            ..default()
+        },
+        hud_big_text_style: TextStyle {
+            font: ui_assets.font.clone(),
+            font_size: 150.0,
+            color: Color::WHITE,
+        },
+        hud_normal_text_style: TextStyle {
+            font: ui_assets.font.clone(),
+            font_size: 100.0,
             color: Color::WHITE,
         },
     });
