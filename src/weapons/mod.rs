@@ -35,6 +35,7 @@ impl Plugin for WeaponsPlugin {
             (
                 update_attack_timers,
                 update_free_floating_weapons,
+                weapon_animation,
                 // display_events,
             )
                 .run_if(in_state(GlobalState::InGame)),
@@ -44,10 +45,19 @@ impl Plugin for WeaponsPlugin {
 
 #[derive(Resource)]
 pub struct WeaponsResources {
-    projectile_mesh: Handle<Mesh>,
-    projectile_material: Handle<StandardMaterial>,
-    pistol_mesh: Handle<Mesh>,
-    pistol_material: Handle<StandardMaterial>,
+    pub projectile_mesh: Handle<Mesh>,
+    pub projectile_material: Handle<StandardMaterial>,
+    pub pistol_mesh: Handle<Mesh>,
+    pub pistol_material: Handle<StandardMaterial>,
+}
+
+#[derive(Component)]
+struct WeaponShootAnimation {
+    animate_forward: bool,
+    animation_speed: f32,
+    progress: f32,
+    initial_transform: Transform,
+    target_transform: Transform,
 }
 
 #[derive(Component)]
@@ -188,6 +198,36 @@ fn update_free_floating_weapons(
                 * FREE_FLOATING_WEAPON_AMPLITUDE_MODIFIER
                 * (time.elapsed().as_secs_f32() * FREE_FLOATING_WEAPON_BOUNCE_SPEED_MODIFIER).sin();
         weapon_transform.rotate_z(time.delta_seconds() * FREE_FLOATING_WEAPON_ROTATION_SPEED);
+    }
+}
+
+fn weapon_animation(
+    time: Res<Time>,
+    mut commands: Commands,
+    mut animated_weapons: Query<(Entity, &mut WeaponShootAnimation, &mut Transform)>,
+) {
+    for (hud, mut animation, mut transform) in animated_weapons.iter_mut() {
+        animation.progress += time.delta_seconds() * animation.animation_speed;
+
+        let (it, tt) = if animation.animate_forward {
+            (&animation.initial_transform, &animation.target_transform)
+        } else {
+            (&animation.target_transform, &animation.initial_transform)
+        };
+        transform.translation = it.translation.lerp(tt.translation, animation.progress);
+        transform.rotation = it.rotation.lerp(tt.rotation, animation.progress);
+
+        if 1.0 <= animation.progress {
+            if animation.animate_forward {
+                animation.progress = 0.0;
+                animation.animate_forward = false;
+            } else {
+                let Some(mut e) = commands.get_entity(hud) else {
+                    return;
+                };
+                e.remove::<WeaponShootAnimation>();
+            }
+        }
     }
 }
 

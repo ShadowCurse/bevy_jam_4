@@ -6,8 +6,8 @@ use crate::{
     level::{LevelObject, LevelStarted},
     player::Player,
     weapons::{
-        pistol::PistolBundle, FreeFloatingWeaponBundle, ShootEvent, WeaponAttackTimer,
-        WeaponsResources,
+        pistol::{PistolBundle, PistolModel},
+        FreeFloatingWeaponBundle, ShootEvent, WeaponAttackTimer, WeaponsResources,
     },
     GlobalState,
 };
@@ -15,7 +15,7 @@ use crate::{
 use super::{EnemiesResources, EnemyBundle};
 
 pub const FRIDGE_DIMENTION_X: f32 = 3.5;
-pub const FRIDGE_DIMENTION_Y: f32 = 3.5;
+pub const FRIDGE_DIMENTION_Y: f32 = 2.5;
 pub const FRIDGE_DIMENTION_Z: f32 = 7.0;
 pub const FRIDGE_PARTS_X: u32 = 2;
 pub const FRIDGE_PARTS_Y: u32 = 2;
@@ -31,7 +31,7 @@ const FRIDGE_DEATH_GAP_DELTA_Y: f32 = FRIDGE_DEATH_GAP_Y / FRIDGE_PARTS_Y as f32
 const FRIDGE_DEATH_GAP_DELTA_Z: f32 = FRIDGE_DEATH_GAP_Z / FRIDGE_PARTS_Z as f32;
 const FRIDGE_DEATH_PULSE_STENGTH: f32 = 0.8;
 
-const FRIDGE_HEALTH: i32 = 100;
+const FRIDGE_HEALTH: i32 = 100000;
 const FRIDGE_SPEED: f32 = 15.0;
 const FRIDGE_MIN_DISTANCE: f32 = 200.0;
 const FRIDGE_WEAPON_OFFSET: Vec3 = Vec3::new(2.0, -2.0, 0.5);
@@ -94,14 +94,27 @@ pub fn spawn_fridge(
     transform: Transform,
 ) {
     let weapon_transform = Transform::from_translation(FRIDGE_WEAPON_OFFSET).with_rotation(
-        Quat::from_rotation_y(std::f32::consts::FRAC_PI_2)
-            * Quat::from_rotation_z(std::f32::consts::FRAC_PI_2),
+        Quat::from_rotation_y(-std::f32::consts::FRAC_PI_2)
+            * Quat::from_rotation_z(-std::f32::consts::FRAC_PI_2),
     );
     let weapon = commands
         .spawn((
-            PistolBundle::new(weapon_transform, weapons_resources),
+            PistolBundle {
+                transform_bundle: TransformBundle::from_transform(weapon_transform),
+                ..default()
+            },
             FridgeWeapon,
         ))
+        .with_children(|builder| {
+            builder.spawn((
+                PbrBundle {
+                    mesh: weapons_resources.pistol_mesh.clone(),
+                    material: weapons_resources.pistol_material.clone(),
+                    ..default()
+                },
+                PistolModel,
+            ));
+        })
         .id();
 
     commands
@@ -169,7 +182,7 @@ fn fridge_shoot(
             shoot_event.send(ShootEvent {
                 weapon_entity,
                 weapon_translation: weapon_global_transform.translation(),
-                direction: weapon_global_transform.back(),
+                direction: weapon_global_transform.forward(),
             });
         }
     }
