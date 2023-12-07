@@ -42,7 +42,7 @@ impl Plugin for PlayerPlugin {
         app.add_systems(
             Update,
             (
-                player_die,
+                player_kills_reading,
                 player_hud_animation,
                 player_trigger_pause,
                 player_shoot,
@@ -72,6 +72,11 @@ pub struct Player {
     pub acceleration: f32,
     pub slow_down_rade: f32,
     pub max_movement_speed_squared: f32,
+}
+
+#[derive(Component)]
+pub struct PlayerScore {
+    pub score: u32,
 }
 
 #[derive(Component)]
@@ -144,6 +149,7 @@ pub fn spawn_player(
                 was_input: false,
                 velocity: Vec3::default(),
             },
+            PlayerScore { score: 0 },
             Health {
                 health: PLAYER_HEALTH,
             },
@@ -341,18 +347,20 @@ fn player_hud_animation(
     }
 }
 
-fn player_die(
-    player: Query<Entity, With<Player>>,
+fn player_kills_reading(
+    mut player: Query<(Entity, &mut PlayerScore), With<Player>>,
     mut kill_events: EventReader<KillEvent>,
     mut global_state: ResMut<NextState<GlobalState>>,
 ) {
-    let Ok(player) = player.get_single() else {
+    let Ok((player, mut player_score)) = player.get_single_mut() else {
         return;
     };
 
     for kill_event in kill_events.read() {
         if kill_event.entity == player {
             global_state.set(GlobalState::GameOver);
+        } else {
+            player_score.score += 10;
         }
     }
 }

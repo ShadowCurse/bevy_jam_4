@@ -2,7 +2,7 @@ use bevy::prelude::*;
 
 use crate::{
     damage::Health,
-    player::{Player, PlayerWeapon},
+    player::{Player, PlayerScore, PlayerWeapon},
     utils::remove_all_with,
     weapons::Ammo,
     UiState,
@@ -142,7 +142,14 @@ fn update_plyaer_hp(
     text.sections[0].value = format!("{}", hp.health);
 }
 
-fn update_plyaer_score(mut volume_text: Query<&mut Text, With<HudPlayerScore>>) {
+fn update_plyaer_score(
+    player_score: Query<&PlayerScore>,
+    mut volume_text: Query<&mut Text, With<HudPlayerScore>>,
+) {
+    let Ok(score) = player_score.get_single() else {
+        return;
+    };
+
     let mut text = volume_text.single_mut();
-    text.sections[0].value = format!("{}", 69);
+    text.sections[0].value = format!("{}", score.score);
 }
