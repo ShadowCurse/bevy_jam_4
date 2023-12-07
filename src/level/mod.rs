@@ -38,7 +38,7 @@ const FILL_AMOUNT: f32 = 0.02;
 const STRIP_LENGTH: u32 = 3;
 
 const LEVEL_WEAPON_SPAWNS: u32 = 4;
-const LEVEL_ENEMIES: u32 = 0;
+const LEVEL_ENEMIES: u32 = 2;
 
 const LEVEL_LIGHTS_COVERAGE: f64 = 0.2;
 const LIGHT_SIZE: f32 = 1.0;
@@ -194,9 +194,9 @@ impl LevelColor {
     }
 }
 
-impl Into<Color> for LevelColor {
-    fn into(self) -> Color {
-        match self {
+impl From<LevelColor> for Color {
+    fn from(value: LevelColor) -> Self {
+        match value {
             LevelColor::Pink => LEVEL_COLOR_PINK,
             LevelColor::Orange => LEVEL_COLOR_ORANGE,
             LevelColor::Blue => LEVEL_COLOR_BLUE,

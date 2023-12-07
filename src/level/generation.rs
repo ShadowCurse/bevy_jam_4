@@ -221,6 +221,7 @@ fn generate_level(previus_door: Option<Door>) -> [[CellType; GRID_SIZE]; GRID_SI
     grid
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn spawn_level(
     ui_resources: &UiResources,
     level_assets: &LevelAssets,
