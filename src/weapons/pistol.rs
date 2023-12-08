@@ -5,7 +5,7 @@ use crate::{damage::Damage, GlobalState};
 
 use super::{
     Ammo, ShellBundle, FreeFloatingWeaponBundle, ProjectileBundle, ShootEvent, WeaponAttackTimer,
-    WeaponShootAnimation, WeaponsAssets, WeaponsResources,
+    WeaponShootAnimation, WeaponAssets, WeaponsResources,
 };
 
 const PISTOL_AMMO: u32 = 10;
@@ -61,7 +61,7 @@ impl Default for PistolBundle {
     }
 }
 
-pub fn spawn_pistol(weapons_assets: &WeaponsAssets, commands: &mut Commands, transform: Transform) {
+pub fn spawn_pistol(weapons_assets: &WeaponAssets, commands: &mut Commands, transform: Transform) {
     // let transform = transform.with_rotation(Quat::from_rotation_x(std::f32::consts::FRAC_PI_2));
     commands
         .spawn((
@@ -85,7 +85,7 @@ pub fn spawn_pistol(weapons_assets: &WeaponsAssets, commands: &mut Commands, tra
 
 fn shoot_pistol(
     pistols: Query<&Children, With<Pistol>>,
-    weapons_assets: Res<WeaponsAssets>,
+    weapons_assets: Res<WeaponAssets>,
     weapons_resources: Res<WeaponsResources>,
     mut commands: Commands,
     mut shoot_event: EventReader<ShootEvent>,

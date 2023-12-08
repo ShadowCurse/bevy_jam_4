@@ -3,10 +3,10 @@ use bevy_rapier3d::prelude::*;
 use rand::Rng;
 
 use crate::{
-    enemies::{fridge::spawn_fridge, EnemiesResources},
+    enemies::{fridge::spawn_fridge, EnemyAssets},
     player::{spawn_player, PlayerResources},
     ui::UiResources,
-    weapons::{pistol::spawn_pistol, WeaponsAssets},
+    weapons::{pistol::spawn_pistol, WeaponAssets},
 };
 
 use super::{
@@ -225,10 +225,10 @@ fn generate_level(previus_door: Option<Door>) -> [[CellType; GRID_SIZE]; GRID_SI
 pub fn spawn_level(
     ui_resources: &UiResources,
     level_assets: &LevelAssets,
-    weapons_assets: &WeaponsAssets,
+    enemy_assets: &EnemyAssets,
+    weapon_assets: &WeaponAssets,
     level_resources: &LevelResources,
     player_resources: &PlayerResources,
-    enemies_resources: &EnemiesResources,
     commands: &mut Commands,
     level_translation: Vec3,
     previus_door: Option<Door>,
@@ -306,10 +306,10 @@ pub fn spawn_level(
                     }
                 }
                 CellType::Weapon => {
-                    spawn_pistol(weapons_assets, commands, transform);
+                    spawn_pistol(weapon_assets, commands, transform);
                 }
                 CellType::Enemy => {
-                    spawn_fridge(weapons_assets, enemies_resources, commands, transform);
+                    spawn_fridge(weapon_assets, enemy_assets, commands, transform);
                 }
                 CellType::Player => {
                     // we spanw player only once, so we can give him

@@ -7,22 +7,23 @@ use crate::{
     player::Player,
     weapons::{
         pistol::{PistolBundle, PistolModel},
-        FreeFloatingWeaponBundle, ShootEvent, WeaponAttackTimer, WeaponsAssets,
+        FreeFloatingWeaponBundle, ShootEvent, WeaponAssets, WeaponAttackTimer,
     },
     GlobalState,
 };
 
-use super::{EnemiesResources, EnemyBundle};
+use super::{EnemyAssets, EnemyBundle, EnemyResources};
 
-pub const FRIDGE_DIMENTION_X: f32 = 1.5;
-pub const FRIDGE_DIMENTION_Y: f32 = 3.5;
-pub const FRIDGE_DIMENTION_Z: f32 = 7.0;
+pub const FRIDGE_DIMENTION_X: f32 = 1.0;
+pub const FRIDGE_DIMENTION_Y: f32 = 1.0;
+pub const FRIDGE_DIMENTION_Z: f32 = 2.0;
 pub const FRIDGE_PARTS_X: u32 = 2;
 pub const FRIDGE_PARTS_Y: u32 = 2;
 pub const FRIDGE_PARTS_Z: u32 = 2;
 pub const FRIDGE_PART_DIMENTION_X: f32 = FRIDGE_DIMENTION_X / FRIDGE_PARTS_X as f32;
 pub const FRIDGE_PART_DIMENTION_Y: f32 = FRIDGE_DIMENTION_Y / FRIDGE_PARTS_Y as f32;
 pub const FRIDGE_PART_DIMENTION_Z: f32 = FRIDGE_DIMENTION_Z / FRIDGE_PARTS_Z as f32;
+
 const FRIDGE_DEATH_GAP_X: f32 = 0.3;
 const FRIDGE_DEATH_GAP_Y: f32 = 0.3;
 const FRIDGE_DEATH_GAP_Z: f32 = 0.3;
@@ -33,8 +34,9 @@ const FRIDGE_DEATH_PULSE_STENGTH: f32 = 0.8;
 
 const FRIDGE_HEALTH: i32 = 100;
 const FRIDGE_SPEED: f32 = 15.0;
+const FRIDGE_ROTATION_SPEED: f32 = 2.0;
 const FRIDGE_MIN_DISTANCE: f32 = 200.0;
-const FRIDGE_WEAPON_OFFSET: Vec3 = Vec3::new(2.0, -2.0, 0.5);
+const FRIDGE_WEAPON_OFFSET: Vec3 = Vec3::new(1.0, 1.2, 0.5);
 
 pub struct FridgePlugin;
 
@@ -62,6 +64,7 @@ pub struct FridgeWeapon;
 #[derive(Bundle)]
 pub struct FridgeBuldle {
     enemy_bundle: EnemyBundle,
+    scene_bundle: SceneBundle,
     health: Health,
     fridge: Fridge,
     disabled: FridgeDisabled,
@@ -74,10 +77,22 @@ impl FridgeBuldle {
         health: i32,
         attached_weapon: Option<Entity>,
         transform: Transform,
-        enemies_resources: &EnemiesResources,
+        enemy_assets: &EnemyAssets,
     ) -> Self {
         Self {
-            enemy_bundle: EnemyBundle::new(transform, enemies_resources),
+            enemy_bundle: EnemyBundle {
+                collider: Collider::cuboid(
+                    FRIDGE_DIMENTION_X,
+                    FRIDGE_DIMENTION_Y,
+                    FRIDGE_DIMENTION_Z,
+                ),
+                ..default()
+            },
+            scene_bundle: SceneBundle {
+                scene: enemy_assets.mid_fridge_scene.clone(),
+                transform: transform.with_scale(Vec3::new(1.5, 1.5, 1.5)),
+                ..default()
+            },
             health: Health { health },
             fridge: Fridge { attached_weapon },
             disabled: FridgeDisabled,
@@ -88,13 +103,12 @@ impl FridgeBuldle {
 }
 
 pub fn spawn_fridge(
-    weapons_assets: &WeaponsAssets,
-    enemies_resources: &EnemiesResources,
+    weapons_assets: &WeaponAssets,
+    enemies_resources: &EnemyAssets,
     commands: &mut Commands,
-    transform: Transform,
+    mut transform: Transform,
 ) {
-    let weapon_transform = Transform::from_translation(FRIDGE_WEAPON_OFFSET)
-        .with_rotation(Quat::from_rotation_z(-std::f32::consts::FRAC_PI_2));
+    let weapon_transform = Transform::from_translation(FRIDGE_WEAPON_OFFSET);
     let weapon = commands
         .spawn((
             PistolBundle {
@@ -115,6 +129,7 @@ pub fn spawn_fridge(
         })
         .id();
 
+    transform.translation.z -= 1.0;
     commands
         .spawn((FridgeBuldle::new(
             FRIDGE_HEALTH,
@@ -154,43 +169,37 @@ fn fridge_move(
     };
 
     for (mut fridge_transform, mut fridge_controller) in fridges.iter_mut() {
-        let v = player_transfomr.translation - fridge_transform.translation;
+        let v = player_transfomr.translation.xy() - fridge_transform.translation.xy();
         let direction = v.normalize();
         if FRIDGE_MIN_DISTANCE < v.length_squared() {
             let movement = direction * FRIDGE_SPEED * time.delta_seconds();
-            fridge_controller.translation = Some(movement);
+            fridge_controller.translation = Some(movement.extend(0.0));
         }
 
-        let enemy_forward = fridge_transform.rotation * Vec3::X;
+        let direction = direction.extend(0.0);
+        let enemy_forward = fridge_transform.rotation * Vec3::Y;
         let mut angle = direction.angle_between(enemy_forward);
         let cross = direction.cross(enemy_forward);
         if 0.0 <= cross.z {
             angle *= -1.0;
         }
-        fridge_transform.rotate_z(angle * time.delta_seconds());
+        fridge_transform.rotate_z(angle * FRIDGE_ROTATION_SPEED * time.delta_seconds());
     }
 }
 
 fn fridge_shoot(
     rapier_context: Res<RapierContext>,
-    player: Query<(Entity, &Transform), With<Player>>,
-    fridges: Query<(&Children, &Transform), With<Fridge>>,
+    player: Query<Entity, With<Player>>,
     enemy_weapons: Query<(Entity, &GlobalTransform, &WeaponAttackTimer), With<FridgeWeapon>>,
     mut shoot_event: EventWriter<ShootEvent>,
 ) {
-    let Ok((player, player_transform)) = player.get_single() else {
+    let Ok(player) = player.get_single() else {
         return;
     };
 
-    for (fridge_children, fridge_transform) in fridges.iter() {
-        let weapon = fridge_children[0];
-        let Ok((weapon_entity, weapon_global_transform, weapon_attack_timer)) =
-            enemy_weapons.get(weapon)
-        else {
-            continue;
-        };
-        let ray_dir = fridge_transform.rotation * Vec3::X;
-        let ray_origin = fridge_transform.translation + ray_dir * 2.0;
+    for (weapon_entity, weapon_global_transform, weapon_attack_timer) in enemy_weapons.iter() {
+        let ray_dir = weapon_global_transform.up();
+        let ray_origin = weapon_global_transform.translation();
         let max_toi = 300.0;
         let solid = true;
         let filter = QueryFilter {
@@ -201,13 +210,10 @@ fn fridge_shoot(
             rapier_context.cast_ray(ray_origin, ray_dir, max_toi, solid, filter)
         {
             if entity == player && weapon_attack_timer.attack_timer.finished() {
-                let player_dir = (player_transform.translation
-                    - weapon_global_transform.translation())
-                .normalize();
                 shoot_event.send(ShootEvent {
                     weapon_entity,
                     weapon_translation: weapon_global_transform.translation(),
-                    direction: player_dir,
+                    direction: weapon_global_transform.up(),
                 });
             }
         }
@@ -215,7 +221,7 @@ fn fridge_shoot(
 }
 
 fn fridge_die(
-    enemies_resources: Res<EnemiesResources>,
+    enemies_resources: Res<EnemyResources>,
     fridges: Query<(Entity, &Transform, &Fridge), Without<FridgeWeapon>>,
     mut weapons: Query<(Entity, &mut Transform), With<FridgeWeapon>>,
     mut commands: Commands,
@@ -280,7 +286,7 @@ fn fridge_die(
                 }
             }
 
-            commands.get_entity(fridge_entity).unwrap().despawn();
+            commands.get_entity(fridge_entity).unwrap().despawn_recursive();
         }
     }
 }

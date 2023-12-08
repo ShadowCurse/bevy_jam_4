@@ -11,11 +11,11 @@ use rand::{
 };
 
 use crate::{
-    enemies::{EnemiesResources, Enemy},
+    enemies::{Enemy, EnemyAssets},
     player::{Player, PlayerResources},
     ui::UiResources,
     utils::remove_all_with,
-    weapons::{Projectile, WeaponsAssets},
+    weapons::{Projectile, WeaponAssets},
     GlobalState, COLLISION_GROUP_ENEMY, COLLISION_GROUP_LEVEL, COLLISION_GROUP_PLAYER,
     COLLISION_GROUP_PROJECTILES,
 };
@@ -385,19 +385,19 @@ fn resume_physics(mut physics: ResMut<RapierConfiguration>) {
 fn spawn_initial_level(
     ui_resources: Res<UiResources>,
     level_assets: Res<LevelAssets>,
-    weapons_assets: Res<WeaponsAssets>,
+    enemy_assets: Res<EnemyAssets>,
+    weapon_assets: Res<WeaponAssets>,
     level_resources: Res<LevelResources>,
     player_resources: Res<PlayerResources>,
-    enemies_resources: Res<EnemiesResources>,
     mut commands: Commands,
 ) {
     spawn_level(
         ui_resources.as_ref(),
         level_assets.as_ref(),
-        weapons_assets.as_ref(),
+        enemy_assets.as_ref(),
+        weapon_assets.as_ref(),
         level_resources.as_ref(),
         player_resources.as_ref(),
-        enemies_resources.as_ref(),
         &mut commands,
         Vec3::ZERO,
         None,
@@ -433,10 +433,10 @@ fn level_progress(
 fn level_switch(
     ui_resources: Res<UiResources>,
     level_assets: Res<LevelAssets>,
-    weapons_assets: Res<WeaponsAssets>,
+    enemy_assets: Res<EnemyAssets>,
+    weapon_assets: Res<WeaponAssets>,
     level_resources: Res<LevelResources>,
     player_resources: Res<PlayerResources>,
-    enemies_resources: Res<EnemiesResources>,
     level_objects: Query<Entity, With<LevelObject>>,
     mut skybox: Query<&mut Skybox>,
     mut level_info: ResMut<LevelInfo>,
@@ -471,10 +471,10 @@ fn level_switch(
         let new_translation = spawn_level(
             ui_resources.as_ref(),
             level_assets.as_ref(),
-            weapons_assets.as_ref(),
+            enemy_assets.as_ref(),
+            weapon_assets.as_ref(),
             level_resources.as_ref(),
             player_resources.as_ref(),
-            enemies_resources.as_ref(),
             &mut commands,
             level_info.translation,
             Some(event.exit_door),

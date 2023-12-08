@@ -22,7 +22,7 @@ pub struct WeaponsPlugin;
 
 impl Plugin for WeaponsPlugin {
     fn build(&self, app: &mut App) {
-        app.add_collection_to_loading_state::<_, WeaponsAssets>(GlobalState::AssetLoading);
+        app.add_collection_to_loading_state::<_, WeaponAssets>(GlobalState::AssetLoading);
 
         app.add_event::<ShootEvent>();
 
@@ -49,7 +49,7 @@ impl Plugin for WeaponsPlugin {
 }
 
 #[derive(AssetCollection, Resource)]
-pub struct WeaponsAssets {
+pub struct WeaponAssets {
     #[asset(path = "pistol/pistol.glb#Scene0")]
     pub pistol_scene: Handle<Scene>,
     #[asset(path = "pistol/pistol_shell.glb#Scene0")]
