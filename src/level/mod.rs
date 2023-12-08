@@ -38,7 +38,7 @@ const FILL_AMOUNT: f32 = 0.02;
 const STRIP_LENGTH: u32 = 3;
 
 const LEVEL_WEAPON_SPAWNS: u32 = 4;
-const LEVEL_ENEMIES: u32 = 2;
+const LEVEL_ENEMIES: u32 = 4;
 
 const LEVEL_LIGHTS_COVERAGE: f64 = 0.2;
 const LIGHT_SIZE: f32 = 1.0;

@@ -14,8 +14,8 @@ use crate::{
 
 use super::{EnemiesResources, EnemyBundle};
 
-pub const FRIDGE_DIMENTION_X: f32 = 3.5;
-pub const FRIDGE_DIMENTION_Y: f32 = 2.5;
+pub const FRIDGE_DIMENTION_X: f32 = 1.5;
+pub const FRIDGE_DIMENTION_Y: f32 = 3.5;
 pub const FRIDGE_DIMENTION_Z: f32 = 7.0;
 pub const FRIDGE_PARTS_X: u32 = 2;
 pub const FRIDGE_PARTS_Y: u32 = 2;
@@ -93,10 +93,8 @@ pub fn spawn_fridge(
     commands: &mut Commands,
     transform: Transform,
 ) {
-    let weapon_transform = Transform::from_translation(FRIDGE_WEAPON_OFFSET).with_rotation(
-        Quat::from_rotation_y(-std::f32::consts::FRAC_PI_2)
-            * Quat::from_rotation_z(-std::f32::consts::FRAC_PI_2),
-    );
+    let weapon_transform = Transform::from_translation(FRIDGE_WEAPON_OFFSET)
+        .with_rotation(Quat::from_rotation_z(-std::f32::consts::FRAC_PI_2));
     let weapon = commands
         .spawn((
             PistolBundle {
@@ -174,16 +172,44 @@ fn fridge_move(
 }
 
 fn fridge_shoot(
+    rapier_context: Res<RapierContext>,
+    player: Query<(Entity, &Transform), With<Player>>,
+    fridges: Query<(&Children, &Transform), With<Fridge>>,
     enemy_weapons: Query<(Entity, &GlobalTransform, &WeaponAttackTimer), With<FridgeWeapon>>,
     mut shoot_event: EventWriter<ShootEvent>,
 ) {
-    for (weapon_entity, weapon_global_transform, weapon_attack_timer) in enemy_weapons.iter() {
-        if weapon_attack_timer.attack_timer.finished() {
-            shoot_event.send(ShootEvent {
-                weapon_entity,
-                weapon_translation: weapon_global_transform.translation(),
-                direction: weapon_global_transform.forward(),
-            });
+    let Ok((player, player_transform)) = player.get_single() else {
+        return;
+    };
+
+    for (fridge_children, fridge_transform) in fridges.iter() {
+        let weapon = fridge_children[0];
+        let Ok((weapon_entity, weapon_global_transform, weapon_attack_timer)) =
+            enemy_weapons.get(weapon)
+        else {
+            continue;
+        };
+        let ray_dir = fridge_transform.rotation * Vec3::X;
+        let ray_origin = fridge_transform.translation + ray_dir * 2.0;
+        let max_toi = 300.0;
+        let solid = true;
+        let filter = QueryFilter {
+            flags: QueryFilterFlags::EXCLUDE_SENSORS,
+            ..default()
+        };
+        if let Some((entity, _)) =
+            rapier_context.cast_ray(ray_origin, ray_dir, max_toi, solid, filter)
+        {
+            if entity == player && weapon_attack_timer.attack_timer.finished() {
+                let player_dir = (player_transform.translation
+                    - weapon_global_transform.translation())
+                .normalize();
+                shoot_event.send(ShootEvent {
+                    weapon_entity,
+                    weapon_translation: weapon_global_transform.translation(),
+                    direction: player_dir,
+                });
+            }
         }
     }
 }

@@ -9,7 +9,7 @@ use crate::{
     COLLISION_GROUP_PROJECTILES,
 };
 
-const PLAYER_HEALTH: i32 = 100;
+const PLAYER_HEALTH: i32 = 500;
 
 const PLAYER_WEAPON_DEFAULT_TRANSLATION: Vec3 = Vec3::new(0.2, -0.5, -1.4);
 const PLAYER_THROW_OFFSET_SCALE: f32 = 10.0;
