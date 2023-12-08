@@ -52,8 +52,16 @@ impl Plugin for WeaponsPlugin {
 pub struct WeaponsAssets {
     #[asset(path = "pistol/pistol.glb#Scene0")]
     pub pistol_scene: Handle<Scene>,
-    #[asset(path = "pistol/pistol_round.glb#Scene0")]
-    pub pistol_clip_scene: Handle<Scene>,
+    #[asset(path = "pistol/pistol_shell.glb#Scene0")]
+    pub pistol_shell_scene: Handle<Scene>,
+    #[asset(path = "shotgun/shotgun.glb#Scene0")]
+    pub shotgun_scene: Handle<Scene>,
+    #[asset(path = "shotgun/shotgun_shell.glb#Scene0")]
+    pub shotgun_shell_scene: Handle<Scene>,
+    #[asset(path = "minigun/minigun.glb#Scene0")]
+    pub minigun_scene: Handle<Scene>,
+    #[asset(path = "minigun/minigun_shell.glb#Scene0")]
+    pub minigun_shell_scene: Handle<Scene>,
 }
 
 #[derive(Resource)]
@@ -114,7 +122,7 @@ impl Default for ProjectileBundle {
 }
 
 #[derive(Bundle)]
-pub struct ClipBundle {
+pub struct ShellBundle {
     pub scene_bundle: SceneBundle,
     pub rigid_body: RigidBody,
     pub collider: Collider,
@@ -124,7 +132,7 @@ pub struct ClipBundle {
     pub level_object: LevelObject,
 }
 
-impl Default for ClipBundle {
+impl Default for ShellBundle {
     fn default() -> Self {
         Self {
             scene_bundle: SceneBundle::default(),

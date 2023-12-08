@@ -4,7 +4,7 @@ use bevy_rapier3d::prelude::*;
 use crate::{damage::Damage, GlobalState};
 
 use super::{
-    Ammo, ClipBundle, FreeFloatingWeaponBundle, ProjectileBundle, ShootEvent, WeaponAttackTimer,
+    Ammo, ShellBundle, FreeFloatingWeaponBundle, ProjectileBundle, ShootEvent, WeaponAttackTimer,
     WeaponShootAnimation, WeaponsAssets, WeaponsResources,
 };
 
@@ -75,7 +75,7 @@ pub fn spawn_pistol(weapons_assets: &WeaponsAssets, commands: &mut Commands, tra
             builder.spawn((
                 SceneBundle {
                     scene: weapons_assets.pistol_scene.clone(),
-                    transform: Transform::from_scale(Vec3::new(0.5, 0.5, 0.5)),
+                    // transform: Transform::from_scale(Vec3::new(0.5, 0.5, 0.5)),
                     ..default()
                 },
                 PistolModel,
@@ -111,11 +111,11 @@ fn shoot_pistol(
                 ..default()
             });
 
-            // spawn clip
+            // spawn shell
             let clip_direction = e.direction.cross(Vec3::Z);
-            commands.spawn(ClipBundle {
+            commands.spawn(ShellBundle {
                 scene_bundle: SceneBundle {
-                    scene: weapons_assets.pistol_clip_scene.clone(),
+                    scene: weapons_assets.pistol_shell_scene.clone(),
                     transform: Transform::from_translation(e.weapon_translation)
                         .with_scale(Vec3::new(2.0, 2.0, 2.0)),
                     ..default()

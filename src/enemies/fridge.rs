@@ -107,7 +107,7 @@ pub fn spawn_fridge(
             builder.spawn((
                 SceneBundle {
                     scene: weapons_assets.pistol_scene.clone(),
-                    transform: Transform::from_scale(Vec3::new(0.5, 0.5, 0.5)),
+                    // transform: Transform::from_scale(Vec3::new(0.5, 0.5, 0.5)),
                     ..default()
                 },
                 PistolModel,
