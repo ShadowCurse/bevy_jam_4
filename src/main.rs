@@ -1,4 +1,5 @@
 use bevy::{
+    asset::AssetMetaCheck,
     prelude::*,
     window::{WindowMode, WindowResolution},
 };
@@ -33,6 +34,8 @@ fn main() {
     app.add_loading_state(
         LoadingState::new(GlobalState::AssetLoading).continue_to_state(GlobalState::MainMenu),
     );
+
+    app.insert_resource(AssetMetaCheck::Never);
 
     app.add_plugins((
         DefaultPlugins
