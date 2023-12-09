@@ -13,7 +13,8 @@ use super::{
     door::{spawn_door, Door, DoorState, DoorType},
     spawn_light, LevelAssets, LevelColliderBundle, LevelObject, LevelResources, LevelType,
     COLUMN_HIGHT, COLUMN_SIZE, FILL_AMOUNT, FLOOR_THICKNESS, GRID_SIZE, LEVEL_ENEMIES,
-    LEVEL_LIGHTS_COVERAGE, LEVEL_SIZE, LEVEL_WEAPON_SPAWNS, STRIP_LENGTH,
+    LEVEL_LIGHTS_COVERAGE, LEVEL_SIZE, LEVEL_SMALL_ENEMIES_PERCENT, LEVEL_WEAPON_SPAWNS,
+    STRIP_LENGTH,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -23,7 +24,7 @@ enum CellType {
     Column,
     Light,
     Weapon,
-    Enemy,
+    Enemy(EnemyType),
     Player,
 }
 
@@ -187,7 +188,11 @@ fn generate_level(previus_door: Option<Door>) -> [[CellType; GRID_SIZE]; GRID_SI
             random_cell_y = rng.gen_range(2..GRID_SIZE - 2);
         }
 
-        grid[random_cell_y][random_cell_x] = CellType::Enemy;
+        if rng.gen_bool(LEVEL_SMALL_ENEMIES_PERCENT) {
+            grid[random_cell_y][random_cell_x] = CellType::Enemy(EnemyType::Small);
+        } else {
+            grid[random_cell_y][random_cell_x] = CellType::Enemy(EnemyType::Mid);
+        }
     }
 
     // generate lights
@@ -308,14 +313,8 @@ pub fn spawn_level(
                 CellType::Weapon => {
                     spawn_pistol(weapon_assets, commands, transform);
                 }
-                CellType::Enemy => {
-                    spawn_enemy(
-                        enemy_assets,
-                        weapon_assets,
-                        EnemyType::Mid,
-                        commands,
-                        transform,
-                    );
+                CellType::Enemy(enemy_type) => {
+                    spawn_enemy(enemy_assets, weapon_assets, *enemy_type, commands, transform);
                 }
                 CellType::Player => {
                     // we spanw player only once, so we can give him

@@ -139,7 +139,7 @@ pub struct EnemyResources {
     big_part_material: Handle<StandardMaterial>,
 }
 
-#[derive(Default)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum EnemyType {
     Small,
     #[default]
