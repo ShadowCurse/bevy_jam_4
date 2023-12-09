@@ -34,6 +34,14 @@ fn setup_pause_menu(mut commands: Commands, config: Res<UiConfig>) {
             GameOverMenu,
         ))
         .with_children(|builder| {
+            builder.spawn(
+                (TextBundle {
+                    text: Text::from_section("YOU DIED", config.title_text_style.clone()),
+                    ..default()
+                })
+                .with_style(config.title_style.clone()),
+            );
+
             // Buttons
             builder
                 .spawn((NodeBundle {
