@@ -8,6 +8,7 @@ use bevy_rapier3d::prelude::*;
 
 mod damage;
 mod enemies;
+mod hud;
 mod level;
 mod player;
 mod ui;
@@ -53,6 +54,7 @@ fn main() {
         RapierDebugRenderPlugin::default(),
         damage::DamagePlugin,
         enemies::EnemiesPlugin,
+        hud::HudPlugin,
         level::LevelPlugin,
         ui::UiPlugin,
         player::PlayerPlugin,
