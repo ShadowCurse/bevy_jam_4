@@ -224,8 +224,10 @@ impl Default for WeaponBundle {
     }
 }
 
-#[derive(Component)]
-pub struct Projectile;
+#[derive(Default, Component)]
+pub struct Projectile {
+    pub direction: Vec3,
+}
 
 #[derive(Bundle)]
 pub struct ProjectileBundle {
@@ -253,7 +255,7 @@ impl Default for ProjectileBundle {
             ),
             active_events: ActiveEvents::COLLISION_EVENTS,
             velocity: Velocity::default(),
-            projectile: Projectile,
+            projectile: Projectile::default(),
             damage: Damage::default(),
 
             level_object: LevelObject,
@@ -556,6 +558,9 @@ fn weapon_shoot(
                             ..default()
                         },
                         damage: Damage { damage },
+                        projectile: Projectile {
+                            direction: e.direction,
+                        },
                         ..default()
                     });
                 }
@@ -585,6 +590,9 @@ fn weapon_shoot(
                                 ..default()
                             },
                             damage: Damage { damage },
+                            projectile: Projectile {
+                                direction: e.direction,
+                            },
                             ..default()
                         });
                     }
@@ -610,6 +618,9 @@ fn weapon_shoot(
                                 ..default()
                             },
                             damage: Damage { damage },
+                            projectile: Projectile {
+                                direction: e.direction,
+                            },
                             ..default()
                         });
                     }
@@ -633,6 +644,9 @@ fn weapon_shoot(
                             ..default()
                         },
                         damage: Damage { damage },
+                        projectile: Projectile {
+                            direction: e.direction,
+                        },
                         ..default()
                     });
 
@@ -650,6 +664,9 @@ fn weapon_shoot(
                             ..default()
                         },
                         damage: Damage { damage },
+                        projectile: Projectile {
+                            direction: e.direction,
+                        },
                         ..default()
                     });
                 }

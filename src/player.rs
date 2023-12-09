@@ -11,7 +11,7 @@ use crate::{
     COLLISION_GROUP_PROJECTILES,
 };
 
-const PLAYER_HEALTH: i32 = 500;
+const PLAYER_HEALTH: i32 = 50000;
 
 const PLAYER_WEAPON_DEFAULT_TRANSLATION: Vec3 = Vec3::new(0.0, -0.8, -1.7);
 const PLAYER_THROW_OFFSET_SCALE: f32 = 10.0;
@@ -136,6 +136,7 @@ pub fn spawn_player(
     let id = commands
         .spawn((
             TransformBundle::from_transform(transform),
+            InheritedVisibility::VISIBLE,
             RigidBody::KinematicPositionBased,
             Collider::capsule(Vec3::new(0.0, 0.0, 0.0), Vec3::new(0.0, 0.0, 2.0), 1.0),
             CollisionGroups::new(
