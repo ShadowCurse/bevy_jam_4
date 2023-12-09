@@ -16,10 +16,10 @@ use bevy_asset_loader::prelude::*;
 use crate::{utils::set_state, GlobalState, UiState};
 
 mod game_over;
-mod hud;
 mod main_menu;
 mod options;
 mod pause;
+mod stats;
 
 pub struct UiPlugin;
 
@@ -28,7 +28,7 @@ impl Plugin for UiPlugin {
         app.add_collection_to_loading_state::<_, UiAssets>(GlobalState::AssetLoading);
 
         app.add_plugins(game_over::GameOverPlugin);
-        app.add_plugins(hud::HudPlugin);
+        app.add_plugins(stats::StatsPlugin);
         app.add_plugins(main_menu::MainMenuPlugin);
         app.add_plugins(options::OptionsPlugin);
         app.add_plugins(pause::PausePlugin);
@@ -133,10 +133,10 @@ pub struct UiConfig {
     pub created_by_style: Style,
     pub created_by_text_style: TextStyle,
 
-    pub hud_style: Style,
-    pub hud_columns_style: Style,
-    pub hud_big_text_style: TextStyle,
-    pub hud_normal_text_style: TextStyle,
+    pub stats_style: Style,
+    pub stats_columns_style: Style,
+    pub stats_big_text_style: TextStyle,
+    pub stats_normal_text_style: TextStyle,
 }
 
 #[derive(Resource)]
@@ -292,26 +292,26 @@ fn setup_ui_config(ui_assets: Res<UiAssets>, mut commands: Commands) {
             color: Color::WHITE,
         },
 
-        hud_style: Style {
+        stats_style: Style {
             justify_self: JustifySelf::Center,
             align_items: AlignItems::Center,
             align_self: AlignSelf::Center,
             column_gap: Val::Percent(30.0),
             ..default()
         },
-        hud_columns_style: Style {
+        stats_columns_style: Style {
             display: Display::Grid,
             justify_self: JustifySelf::Center,
             justify_content: JustifyContent::Center,
             align_items: AlignItems::Center,
             ..default()
         },
-        hud_big_text_style: TextStyle {
+        stats_big_text_style: TextStyle {
             font: ui_assets.font.clone(),
             font_size: 150.0,
             color: Color::WHITE,
         },
-        hud_normal_text_style: TextStyle {
+        stats_normal_text_style: TextStyle {
             font: ui_assets.font.clone(),
             font_size: 100.0,
             color: Color::WHITE,

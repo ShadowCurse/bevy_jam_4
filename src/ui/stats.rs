@@ -10,33 +10,33 @@ use crate::{
 
 use super::UiConfig;
 
-pub struct HudPlugin;
+pub struct StatsPlugin;
 
-impl Plugin for HudPlugin {
+impl Plugin for StatsPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(UiState::Hud), setup_main_menu);
+        app.add_systems(OnEnter(UiState::Hud), setup_stats_menu);
         app.add_systems(
             Update,
             (update_plyaer_hp, update_player_ammo, update_plyaer_score)
                 .run_if(in_state(UiState::Hud)),
         );
-        app.add_systems(OnExit(UiState::Hud), remove_all_with::<HudMenu>);
+        app.add_systems(OnExit(UiState::Hud), remove_all_with::<StatsMenu>);
     }
 }
 
 #[derive(Component)]
-struct HudMenu;
+struct StatsMenu;
 
 #[derive(Component)]
-struct HudPlayerScore;
+struct StatsPlayerScore;
 
 #[derive(Component)]
-struct HudPlayerHp;
+struct StatsPlayerHp;
 
 #[derive(Component)]
-struct HudPlayerAmmo;
+struct StatsPlayerAmmo;
 
-fn setup_main_menu(mut commands: Commands, config: Res<UiConfig>) {
+fn setup_stats_menu(mut commands: Commands, config: Res<UiConfig>) {
     commands
         .spawn((
             NodeBundle {
@@ -44,7 +44,7 @@ fn setup_main_menu(mut commands: Commands, config: Res<UiConfig>) {
                 background_color: config.panels_background.into(),
                 ..default()
             },
-            HudMenu,
+            StatsMenu,
         ))
         .with_children(|builder| {
             // Left column (Ammo + HP)
@@ -55,7 +55,7 @@ fn setup_main_menu(mut commands: Commands, config: Res<UiConfig>) {
                         background_color: config.panels_background.into(),
                         ..default()
                     },
-                    HudMenu,
+                    StatsMenu,
                 ))
                 .with_children(|builder| {
                     // Ammo
@@ -70,7 +70,7 @@ fn setup_main_menu(mut commands: Commands, config: Res<UiConfig>) {
                             ..default()
                         }
                         .with_style(config.title_style.clone()),
-                        HudPlayerAmmo,
+                        StatsPlayerAmmo,
                     ));
 
                     // HP
@@ -85,7 +85,7 @@ fn setup_main_menu(mut commands: Commands, config: Res<UiConfig>) {
                             ..default()
                         }
                         .with_style(config.title_style.clone()),
-                        HudPlayerHp,
+                        StatsPlayerHp,
                     ));
                 });
 
@@ -97,7 +97,7 @@ fn setup_main_menu(mut commands: Commands, config: Res<UiConfig>) {
                         background_color: config.panels_background.into(),
                         ..default()
                     },
-                    HudMenu,
+                    StatsMenu,
                 ))
                 .with_children(|builder| {
                     // "Score" text
@@ -114,7 +114,7 @@ fn setup_main_menu(mut commands: Commands, config: Res<UiConfig>) {
                             ..default()
                         }
                         .with_style(config.title_style.clone()),
-                        HudPlayerScore,
+                        StatsPlayerScore,
                     ));
                 });
         });
@@ -122,7 +122,7 @@ fn setup_main_menu(mut commands: Commands, config: Res<UiConfig>) {
 
 fn update_player_ammo(
     player_ammo: Query<&Ammo, With<PlayerWeapon>>,
-    mut window_mode_text: Query<&mut Text, With<HudPlayerAmmo>>,
+    mut window_mode_text: Query<&mut Text, With<StatsPlayerAmmo>>,
 ) {
     let mut text = window_mode_text.single_mut();
     match player_ammo.get_single() {
@@ -133,7 +133,7 @@ fn update_player_ammo(
 
 fn update_plyaer_hp(
     player_hp: Query<&Health, With<Player>>,
-    mut volume_text: Query<&mut Text, With<HudPlayerHp>>,
+    mut volume_text: Query<&mut Text, With<StatsPlayerHp>>,
 ) {
     let Ok(hp) = player_hp.get_single() else {
         return;
@@ -144,7 +144,7 @@ fn update_plyaer_hp(
 
 fn update_plyaer_score(
     player_score: Query<&PlayerScore>,
-    mut volume_text: Query<&mut Text, With<HudPlayerScore>>,
+    mut volume_text: Query<&mut Text, With<StatsPlayerScore>>,
 ) {
     let Ok(score) = player_score.get_single() else {
         return;
