@@ -14,13 +14,13 @@ pub struct StatsPlugin;
 
 impl Plugin for StatsPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(UiState::Hud), setup_stats_menu);
+        app.add_systems(OnEnter(UiState::Stats), setup_stats_menu);
         app.add_systems(
             Update,
             (update_plyaer_hp, update_player_ammo, update_plyaer_score)
-                .run_if(in_state(UiState::Hud)),
+                .run_if(in_state(UiState::Stats)),
         );
-        app.add_systems(OnExit(UiState::Hud), remove_all_with::<StatsMenu>);
+        app.add_systems(OnExit(UiState::Stats), remove_all_with::<StatsMenu>);
     }
 }
 
@@ -40,7 +40,7 @@ fn setup_stats_menu(mut commands: Commands, config: Res<UiConfig>) {
     commands
         .spawn((
             NodeBundle {
-                style: config.hud_style.clone(),
+                style: config.stats_style.clone(),
                 background_color: config.panels_background.into(),
                 ..default()
             },
@@ -51,7 +51,7 @@ fn setup_stats_menu(mut commands: Commands, config: Res<UiConfig>) {
             builder
                 .spawn((
                     NodeBundle {
-                        style: config.hud_columns_style.clone(),
+                        style: config.stats_columns_style.clone(),
                         background_color: config.panels_background.into(),
                         ..default()
                     },
@@ -60,13 +60,13 @@ fn setup_stats_menu(mut commands: Commands, config: Res<UiConfig>) {
                 .with_children(|builder| {
                     // Ammo
                     builder.spawn((TextBundle {
-                        text: Text::from_section("AMMO", config.hud_normal_text_style.clone()),
+                        text: Text::from_section("AMMO", config.stats_normal_text_style.clone()),
                         ..default()
                     }
                     .with_style(config.title_style.clone()),));
                     builder.spawn((
                         TextBundle {
-                            text: Text::from_section("", config.hud_normal_text_style.clone()),
+                            text: Text::from_section("", config.stats_normal_text_style.clone()),
                             ..default()
                         }
                         .with_style(config.title_style.clone()),
@@ -75,13 +75,13 @@ fn setup_stats_menu(mut commands: Commands, config: Res<UiConfig>) {
 
                     // HP
                     builder.spawn((TextBundle {
-                        text: Text::from_section("HP", config.hud_normal_text_style.clone()),
+                        text: Text::from_section("HP", config.stats_normal_text_style.clone()),
                         ..default()
                     }
                     .with_style(config.title_style.clone()),));
                     builder.spawn((
                         TextBundle {
-                            text: Text::from_section("", config.hud_normal_text_style.clone()),
+                            text: Text::from_section("", config.stats_normal_text_style.clone()),
                             ..default()
                         }
                         .with_style(config.title_style.clone()),
@@ -93,7 +93,7 @@ fn setup_stats_menu(mut commands: Commands, config: Res<UiConfig>) {
             builder
                 .spawn((
                     NodeBundle {
-                        style: config.hud_columns_style.clone(),
+                        style: config.stats_columns_style.clone(),
                         background_color: config.panels_background.into(),
                         ..default()
                     },
@@ -102,7 +102,7 @@ fn setup_stats_menu(mut commands: Commands, config: Res<UiConfig>) {
                 .with_children(|builder| {
                     // "Score" text
                     builder.spawn((TextBundle {
-                        text: Text::from_section("SCORE", config.hud_big_text_style.clone()),
+                        text: Text::from_section("SCORE", config.stats_big_text_style.clone()),
                         ..default()
                     }
                     .with_style(config.title_style.clone()),));
@@ -110,7 +110,7 @@ fn setup_stats_menu(mut commands: Commands, config: Res<UiConfig>) {
                     // Actual score number
                     builder.spawn((
                         TextBundle {
-                            text: Text::from_section("", config.hud_big_text_style.clone()),
+                            text: Text::from_section("", config.stats_big_text_style.clone()),
                             ..default()
                         }
                         .with_style(config.title_style.clone()),

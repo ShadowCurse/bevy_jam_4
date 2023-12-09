@@ -130,7 +130,7 @@ pub enum UiState {
     NoUi,
     MainMenu,
     Options,
-    Hud,
+    Stats,
     Paused,
     GameOver,
 }

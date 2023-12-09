@@ -51,7 +51,7 @@ impl Plugin for UiPlugin {
                 from: GlobalState::MainMenu,
                 to: GlobalState::InGame,
             },
-            set_state::<UiState, { UiState::Hud as u8 }>,
+            set_state::<UiState, { UiState::Stats as u8 }>,
         );
 
         app.add_systems(
@@ -67,7 +67,7 @@ impl Plugin for UiPlugin {
                 from: GlobalState::Paused,
                 to: GlobalState::InGame,
             },
-            set_state::<UiState, { UiState::Hud as u8 }>,
+            set_state::<UiState, { UiState::Stats as u8 }>,
         );
         app.add_systems(
             OnTransition {
@@ -90,7 +90,7 @@ impl Plugin for UiPlugin {
                 from: GlobalState::GameOver,
                 to: GlobalState::InGame,
             },
-            set_state::<UiState, { UiState::Hud as u8 }>,
+            set_state::<UiState, { UiState::Stats as u8 }>,
         );
         app.add_systems(
             OnTransition {
