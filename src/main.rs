@@ -75,6 +75,7 @@ fn main() {
     app.insert_resource(GameSettings {
         window_mode: WindowMode::Windowed,
         volume: 0.5,
+        camera_sensitivity: 3.0,
     });
 
     app.run();
@@ -142,4 +143,5 @@ impl_into_state!(UiState);
 struct GameSettings {
     window_mode: WindowMode,
     volume: f32,
+    camera_sensitivity: f32,
 }

@@ -15,6 +15,7 @@ impl Plugin for OptionsPlugin {
                 button_system,
                 update_window_mode_text,
                 update_volume_value_text,
+                update_camera_sense_value_text,
             )
                 .run_if(in_state(UiState::Options)),
         );
@@ -31,6 +32,8 @@ enum OptionMenuButton {
     Windowed,
     VolumeUp,
     VolumeDown,
+    SenseUp,
+    SenseDown,
     Back,
 }
 
@@ -39,6 +42,9 @@ struct OptionsWindowModeText;
 
 #[derive(Component)]
 struct OptionsVolumeText;
+
+#[derive(Component)]
+struct OptionsCameraSenseText;
 
 fn setup_option_menu(mut commands: Commands, config: Res<UiConfig>) {
     commands
@@ -91,7 +97,6 @@ fn setup_option_menu(mut commands: Commands, config: Res<UiConfig>) {
                         .with_children(|builder| {
                             spawn_button(builder, &config, OptionMenuButton::VolumeUp);
                             spawn_button(builder, &config, OptionMenuButton::VolumeDown);
-                            // Window mode text
                             builder.spawn((
                                 TextBundle {
                                     text: Text::from_section("", config.options_text_style.clone()),
@@ -99,6 +104,26 @@ fn setup_option_menu(mut commands: Commands, config: Res<UiConfig>) {
                                 }
                                 .with_style(config.button_style.clone()),
                                 OptionsVolumeText,
+                            ));
+                        });
+
+                    // Camera sense
+                    builder
+                        .spawn((NodeBundle {
+                            style: config.options_buttons_area_style.clone(),
+                            background_color: config.panels_background.into(),
+                            ..default()
+                        },))
+                        .with_children(|builder| {
+                            spawn_button(builder, &config, OptionMenuButton::SenseUp);
+                            spawn_button(builder, &config, OptionMenuButton::SenseDown);
+                            builder.spawn((
+                                TextBundle {
+                                    text: Text::from_section("", config.options_text_style.clone()),
+                                    ..default()
+                                }
+                                .with_style(config.button_style.clone()),
+                                OptionsCameraSenseText,
                             ));
                         });
 
@@ -147,6 +172,15 @@ fn button_system(
                             game_settings.volume = 0.0;
                         }
                     }
+                    OptionMenuButton::SenseUp => {
+                        game_settings.camera_sensitivity += 0.5;
+                    }
+                    OptionMenuButton::SenseDown => {
+                        game_settings.camera_sensitivity -= 0.5;
+                        if game_settings.camera_sensitivity <= 0.0 {
+                            game_settings.camera_sensitivity = 0.0;
+                        }
+                    }
                     OptionMenuButton::Back => match global_state.get() {
                         GlobalState::MainMenu => ui_state.set(UiState::MainMenu),
                         GlobalState::Paused => ui_state.set(UiState::Paused),
@@ -178,4 +212,12 @@ fn update_volume_value_text(
 ) {
     let mut text = volume_text.single_mut();
     text.sections[0].value = format!("{:.2}", game_settings.volume);
+}
+
+fn update_camera_sense_value_text(
+    game_settings: Res<GameSettings>,
+    mut volume_text: Query<&mut Text, With<OptionsCameraSenseText>>,
+) {
+    let mut text = volume_text.single_mut();
+    text.sections[0].value = format!("{:.2}", game_settings.camera_sensitivity);
 }

@@ -241,7 +241,7 @@ fn setup_ui_config(ui_assets: Res<UiAssets>, mut commands: Commands) {
         },
         text_style: TextStyle {
             font: ui_assets.font.clone(),
-            font_size: 40.0,
+            font_size: 30.0,
             color: Color::WHITE,
         },
 

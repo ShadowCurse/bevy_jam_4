@@ -7,8 +7,8 @@ use crate::{
     damage::{Health, KillEvent},
     ui::UiResources,
     weapons::{Ammo, FreeFloatingWeapon, FreeFloatingWeaponBundle, ShootEvent, WeaponAttackTimer},
-    GlobalState, COLLISION_GROUP_LEVEL, COLLISION_GROUP_PICKUP, COLLISION_GROUP_PLAYER,
-    COLLISION_GROUP_PROJECTILES,
+    GameSettings, GlobalState, COLLISION_GROUP_LEVEL, COLLISION_GROUP_PICKUP,
+    COLLISION_GROUP_PLAYER, COLLISION_GROUP_PROJECTILES,
 };
 
 const PLAYER_HEALTH: i32 = 50000;
@@ -91,7 +91,6 @@ pub struct PlayerVelocity {
 #[derive(Component)]
 pub struct PlayerCamera {
     pub default_translation: Vec3,
-    pub rotation_speed: f32,
 
     pub bounce_continue: bool,
     pub bounce_progress: f32,
@@ -176,7 +175,6 @@ pub fn spawn_player(
                     Skybox(skybox_image),
                     PlayerCamera {
                         default_translation: Vec3::new(0.0, 0.0, 2.0),
-                        rotation_speed: 5.0,
 
                         bounce_continue: false,
                         bounce_progress: 0.0,
@@ -668,6 +666,7 @@ fn player_camera_switch(
 // TODO make better
 fn player_camera_update(
     time: Res<Time>,
+    game_settings: Res<GameSettings>,
     player_components: Query<&PlayerVelocity>,
     mut ev_motion: EventReader<MouseMotion>,
     mut player_camera_components: Query<(&mut PlayerCamera, &mut Transform)>,
@@ -681,7 +680,7 @@ fn player_camera_update(
     };
 
     let rotation: f32 = ev_motion.read().map(|e| -e.delta.x).sum();
-    transform.rotate_z(rotation * time.delta_seconds() * camera.rotation_speed);
+    transform.rotate_z(rotation * time.delta_seconds() * game_settings.camera_sensitivity);
 
     transform.translation = camera.default_translation
         + Vec3::NEG_Z
