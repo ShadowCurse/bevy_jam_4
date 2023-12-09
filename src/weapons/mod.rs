@@ -540,6 +540,8 @@ fn weapon_shoot(
                 ),
             };
 
+            let right = e.direction.cross(Vec3::Z);
+
             // spawn projectiles
             match weapon.weapon_type {
                 WeaponType::Pistol => {
@@ -567,7 +569,6 @@ fn weapon_shoot(
                 WeaponType::Shotgun => {
                     let projectile_translation =
                         e.weapon_translation + e.direction * projectile_offset_scale;
-                    let right = e.direction.cross(Vec3::Z);
 
                     let left_barrel = projectile_translation - right / 2.0;
                     for modifier in [
@@ -628,7 +629,6 @@ fn weapon_shoot(
                 WeaponType::Minigun => {
                     let projectile_translation =
                         e.weapon_translation + e.direction * projectile_offset_scale;
-                    let right = e.direction.cross(Vec3::Z);
 
                     let left_barrel = projectile_translation - right / 2.0;
                     commands.spawn(ProjectileBundle {
@@ -673,20 +673,56 @@ fn weapon_shoot(
             }
 
             // spawn shell
-            let shell_direction = e.direction.cross(Vec3::Z);
-            commands.spawn(ShellBundle {
-                scene_bundle: SceneBundle {
-                    scene: shell_scene,
-                    transform: Transform::from_translation(e.weapon_translation)
-                        .with_scale(Vec3::new(2.0, 2.0, 2.0)),
-                    ..default()
-                },
-                velocity: Velocity {
-                    linvel: shell_direction * shell_initial_velocity,
-                    ..default()
-                },
-                ..default()
-            });
+            let shell_direction = right + Vec3::Z;
+            match weapon.weapon_type {
+                WeaponType::Pistol => {
+                    commands.spawn(ShellBundle {
+                        scene_bundle: SceneBundle {
+                            scene: shell_scene,
+                            transform: Transform::from_translation(e.weapon_translation)
+                                .with_scale(Vec3::new(2.0, 2.0, 2.0)),
+                            ..default()
+                        },
+                        velocity: Velocity {
+                            linvel: shell_direction * shell_initial_velocity,
+                            ..default()
+                        },
+                        ..default()
+                    });
+                }
+                WeaponType::Shotgun | WeaponType::Minigun => {
+                    commands.spawn(ShellBundle {
+                        scene_bundle: SceneBundle {
+                            scene: shell_scene.clone(),
+                            transform: Transform::from_translation(
+                                e.weapon_translation - right / 2.0,
+                            )
+                            .with_scale(Vec3::new(2.0, 2.0, 2.0)),
+                            ..default()
+                        },
+                        velocity: Velocity {
+                            linvel: shell_direction * shell_initial_velocity,
+                            ..default()
+                        },
+                        ..default()
+                    });
+                    commands.spawn(ShellBundle {
+                        scene_bundle: SceneBundle {
+                            scene: shell_scene,
+                            transform: Transform::from_translation(
+                                e.weapon_translation - right / 2.0,
+                            )
+                            .with_scale(Vec3::new(2.0, 2.0, 2.0)),
+                            ..default()
+                        },
+                        velocity: Velocity {
+                            linvel: shell_direction * shell_initial_velocity,
+                            ..default()
+                        },
+                        ..default()
+                    });
+                }
+            }
 
             // start shooting animation
             let weapon_model = weapon_children[0];
