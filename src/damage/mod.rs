@@ -71,12 +71,20 @@ fn apply_damage(
                 continue;
             };
 
+        // skip enemies that were killed by prevous iterations
+        if entity_health.health <= 0 {
+            continue;
+        }
+
         entity_health.health -= projectile_damage.damage;
         if entity_health.health <= 0 {
             commands.get_entity(entity).unwrap().remove::<Health>();
             kill_events.send(KillEvent { entity });
         } else {
-            damage_events.send(DamageEvent { entity, direction: projectile.direction });
+            damage_events.send(DamageEvent {
+                entity,
+                direction: projectile.direction,
+            });
         }
     }
 }
