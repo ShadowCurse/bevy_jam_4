@@ -620,12 +620,11 @@ fn weapon_shoot(
                     let right = e.direction.cross(Vec3::Z);
 
                     let left_barrel = projectile_translation - right / 2.0;
-                    let projectile_translation = left_barrel;
                     commands.spawn(ProjectileBundle {
                         pbr_bundle: PbrBundle {
                             mesh: weapon_resources.projectile_mesh.clone(),
                             material: weapon_resources.projectile_material.clone(),
-                            transform: Transform::from_translation(projectile_translation),
+                            transform: Transform::from_translation(left_barrel),
                             ..default()
                         },
                         collider: Collider::ball(DEFAULT_PROJECTILE_SIZE),
@@ -638,12 +637,11 @@ fn weapon_shoot(
                     });
 
                     let right_barrel = projectile_translation + right / 2.0;
-                    let projectile_translation = right_barrel;
                     commands.spawn(ProjectileBundle {
                         pbr_bundle: PbrBundle {
                             mesh: weapon_resources.projectile_mesh.clone(),
                             material: weapon_resources.projectile_material.clone(),
-                            transform: Transform::from_translation(projectile_translation),
+                            transform: Transform::from_translation(right_barrel),
                             ..default()
                         },
                         collider: Collider::ball(DEFAULT_PROJECTILE_SIZE),
