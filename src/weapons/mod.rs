@@ -7,9 +7,7 @@ use crate::{
     COLLISION_GROUP_PICKUP, COLLISION_GROUP_PLAYER, COLLISION_GROUP_PROJECTILES,
 };
 
-pub mod pistol;
-
-const DEFAULT_PROJECTILE_SIZE: f32 = 0.2;
+const DEFAULT_PROJECTILE_SIZE: f32 = 0.125;
 const DEFAULT_CLIP_SIZE: f32 = 0.01;
 const DEFAULT_CLIP_LENGTH: f32 = 0.02;
 
@@ -18,6 +16,56 @@ const FREE_FLOATING_WEAPON_ROTATION_SPEED: f32 = 0.4;
 const FREE_FLOATING_WEAPON_AMPLITUDE_MODIFIER: f32 = 0.5;
 const FREE_FLOATING_WEAPON_BOUNCE_SPEED_MODIFIER: f32 = 2.0;
 
+// Pistol
+const PISTOL_AMMO: u32 = 10;
+const PISTOL_DAMAGE: i32 = 10;
+const PISTOL_ATTACK_SPEED: f32 = 1.0 / 4.0;
+const PISTOL_PROJECTILE_VELOCITY: f32 = 500.0;
+const PISTOL_PROJECTILE_OFFSET_SCALE: f32 = 2.0;
+
+// Needs to be bigger that (1 / attack_speed) * 2
+// because animatino played for 2 directions
+const PISTOL_ANIMATION_SPEED: f32 = 10.0;
+const PISTOL_ANIMATION_FORWARD: bool = true;
+const PISTOL_ANIMATION_BACKWARD: bool = true;
+const PISTOL_ANIMATION_TARGET_OFFSET: Vec3 = Vec3::new(0.2, 0.2, 0.0);
+const PISTOL_ANIMATION_TARGET_ROTATION_X: f32 = std::f32::consts::FRAC_PI_8;
+const PISTOL_ANIMATION_TARGET_ROTATION_Y: f32 = 0.0;
+const PISTOL_SHELL_INITIAL_VELOCITY: f32 = 10.0;
+
+// Shotgun
+const SHOTGUN_AMMO: u32 = 5;
+const SHOTGUN_DAMAGE: i32 = 5;
+const SHOTGUN_ATTACK_SPEED: f32 = 1.0 / 2.0;
+const SHOTGUN_PROJECTILE_VELOCITY: f32 = 500.0;
+const SHOTGUN_PROJECTILE_OFFSET_SCALE: f32 = 2.2;
+
+// Needs to be bigger that (1 / attack_speed) * 2
+// because animatino played for 2 directions
+const SHOTGUN_ANIMATION_SPEED: f32 = 5.0;
+const SHOTGUN_ANIMATION_FORWARD: bool = true;
+const SHOTGUN_ANIMATION_BACKWARD: bool = true;
+const SHOTGUN_ANIMATION_TARGET_OFFSET: Vec3 = Vec3::new(0.2, 0.2, 0.0);
+const SHOTGUN_ANIMATION_TARGET_ROTATION_X: f32 = std::f32::consts::FRAC_PI_8;
+const SHOTGUN_ANIMATION_TARGET_ROTATION_Y: f32 = 0.0;
+const SHOTGUN_SHELL_INITIAL_VELOCITY: f32 = 10.0;
+
+// Minigun
+const MINIGUN_AMMO: u32 = 50;
+const MINIGUN_DAMAGE: i32 = 10;
+const MINIGUN_ATTACK_SPEED: f32 = 1.0 / 8.0;
+const MINIGUN_PROJECTILE_VELOCITY: f32 = 500.0;
+const MINIGUN_PROJECTILE_OFFSET_SCALE: f32 = 3.0;
+
+// Needs to be bigger that (1 / attack_speed)
+const MINIGUN_ANIMATION_SPEED: f32 = 9.0;
+const MINIGUN_ANIMATION_FORWARD: bool = true;
+const MINIGUN_ANIMATION_BACKWARD: bool = false;
+const MINIGUN_ANIMATION_TARGET_OFFSET: Vec3 = Vec3::ZERO;
+const MINIGUN_ANIMATION_TARGET_ROTATION_X: f32 = 0.0;
+const MINIGUN_ANIMATION_TARGET_ROTATION_Y: f32 = std::f32::consts::FRAC_PI_2;
+const MINIGUN_SHELL_INITIAL_VELOCITY: f32 = 10.0;
+
 pub struct WeaponsPlugin;
 
 impl Plugin for WeaponsPlugin {
@@ -25,8 +73,6 @@ impl Plugin for WeaponsPlugin {
         app.add_collection_to_loading_state::<_, WeaponAssets>(GlobalState::AssetLoading);
 
         app.add_event::<ShootEvent>();
-
-        app.add_plugins(pistol::PistolPlugin);
 
         app.add_systems(
             OnTransition {
@@ -40,6 +86,7 @@ impl Plugin for WeaponsPlugin {
             (
                 update_attack_timers,
                 update_free_floating_weapons,
+                weapon_shoot,
                 weapon_animation,
                 // display_events,
             )
@@ -70,18 +117,111 @@ pub struct WeaponsResources {
     pub projectile_material: Handle<StandardMaterial>,
 }
 
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub enum WeaponType {
+    #[default]
+    Pistol,
+    Shotgun,
+    Minigun,
+}
+
 #[derive(Component)]
 struct WeaponShootAnimation {
     animate_forward: bool,
+    animate_backward: bool,
     animation_speed: f32,
     progress: f32,
     initial_transform: Transform,
     target_transform: Transform,
 }
 
+#[derive(Default, Component)]
+pub struct Weapon {
+    weapon_type: WeaponType,
+}
+
 #[derive(Component)]
+pub struct WeaponModel;
+
+#[derive(Default, Component)]
 pub struct Ammo {
     pub ammo: u32,
+}
+
+#[derive(Event)]
+pub struct ShootEvent {
+    pub weapon_entity: Entity,
+    pub weapon_translation: Vec3,
+    pub direction: Vec3,
+}
+
+#[derive(Component)]
+pub struct WeaponAttackTimer {
+    pub attack_timer: Timer,
+}
+
+#[derive(Component)]
+pub struct FreeFloatingWeapon {
+    pub original_translation: Vec3,
+}
+
+#[derive(Bundle)]
+pub struct WeaponBundle {
+    pub transform_bundle: TransformBundle,
+    pub inherited_visibility: InheritedVisibility,
+    pub ammo: Ammo,
+    pub weapon_attack_timer: WeaponAttackTimer,
+    pub weapon: Weapon,
+}
+
+impl WeaponBundle {
+    pub fn pistol(transform: Transform) -> Self {
+        Self {
+            transform_bundle: TransformBundle::from_transform(transform),
+            inherited_visibility: InheritedVisibility::VISIBLE,
+            ammo: Ammo { ammo: PISTOL_AMMO },
+            weapon_attack_timer: WeaponAttackTimer::new(PISTOL_ATTACK_SPEED),
+            weapon: Weapon {
+                weapon_type: WeaponType::Pistol,
+            },
+        }
+    }
+
+    pub fn shotgun(transform: Transform) -> Self {
+        Self {
+            transform_bundle: TransformBundle::from_transform(transform),
+            inherited_visibility: InheritedVisibility::VISIBLE,
+            ammo: Ammo { ammo: SHOTGUN_AMMO },
+            weapon_attack_timer: WeaponAttackTimer::new(SHOTGUN_ATTACK_SPEED),
+            weapon: Weapon {
+                weapon_type: WeaponType::Shotgun,
+            },
+        }
+    }
+
+    pub fn minigun(transform: Transform) -> Self {
+        Self {
+            transform_bundle: TransformBundle::from_transform(transform),
+            inherited_visibility: InheritedVisibility::VISIBLE,
+            ammo: Ammo { ammo: MINIGUN_AMMO },
+            weapon_attack_timer: WeaponAttackTimer::new(MINIGUN_ATTACK_SPEED),
+            weapon: Weapon {
+                weapon_type: WeaponType::Minigun,
+            },
+        }
+    }
+}
+
+impl Default for WeaponBundle {
+    fn default() -> Self {
+        Self {
+            transform_bundle: TransformBundle::default(),
+            inherited_visibility: InheritedVisibility::VISIBLE,
+            ammo: Ammo::default(),
+            weapon_attack_timer: WeaponAttackTimer::new(0.0),
+            weapon: Weapon::default(),
+        }
+    }
 }
 
 #[derive(Component)]
@@ -106,7 +246,7 @@ impl Default for ProjectileBundle {
         Self {
             pbr_bundle: PbrBundle::default(),
             rigid_body: RigidBody::Dynamic,
-            collider: Collider::ball(DEFAULT_PROJECTILE_SIZE),
+            collider: Collider::default(),
             collision_groups: CollisionGroups::new(
                 COLLISION_GROUP_PROJECTILES,
                 COLLISION_GROUP_LEVEL | COLLISION_GROUP_PLAYER | COLLISION_GROUP_ENEMY,
@@ -147,23 +287,6 @@ impl Default for ShellBundle {
             level_object: LevelObject,
         }
     }
-}
-
-#[derive(Event)]
-pub struct ShootEvent {
-    pub weapon_entity: Entity,
-    pub weapon_translation: Vec3,
-    pub direction: Vec3,
-}
-
-#[derive(Component)]
-pub struct WeaponAttackTimer {
-    pub attack_timer: Timer,
-}
-
-#[derive(Component)]
-pub struct FreeFloatingWeapon {
-    pub original_translation: Vec3,
 }
 
 #[derive(Bundle)]
@@ -224,6 +347,65 @@ fn init_resources(
     });
 }
 
+pub fn spawn_weapon(
+    weapons_assets: &WeaponAssets,
+    weapon_type: WeaponType,
+    commands: &mut Commands,
+    transform: Transform,
+) {
+    match weapon_type {
+        WeaponType::Pistol => {
+            commands
+                .spawn((
+                    WeaponBundle::pistol(transform),
+                    FreeFloatingWeaponBundle::new(transform.translation),
+                ))
+                .with_children(|builder| {
+                    builder.spawn((
+                        SceneBundle {
+                            scene: weapons_assets.pistol_scene.clone(),
+                            ..default()
+                        },
+                        WeaponModel,
+                    ));
+                });
+        }
+
+        WeaponType::Shotgun => {
+            commands
+                .spawn((
+                    WeaponBundle::shotgun(transform),
+                    FreeFloatingWeaponBundle::new(transform.translation),
+                ))
+                .with_children(|builder| {
+                    builder.spawn((
+                        SceneBundle {
+                            scene: weapons_assets.shotgun_scene.clone(),
+                            ..default()
+                        },
+                        WeaponModel,
+                    ));
+                });
+        }
+        WeaponType::Minigun => {
+            commands
+                .spawn((
+                    WeaponBundle::minigun(transform),
+                    FreeFloatingWeaponBundle::new(transform.translation),
+                ))
+                .with_children(|builder| {
+                    builder.spawn((
+                        SceneBundle {
+                            scene: weapons_assets.minigun_scene.clone(),
+                            ..default()
+                        },
+                        WeaponModel,
+                    ));
+                });
+        }
+    }
+}
+
 fn update_attack_timers(time: Res<Time>, mut timers: Query<&mut WeaponAttackTimer>) {
     for mut timer in timers.iter_mut() {
         timer.attack_timer.tick(time.delta());
@@ -251,24 +433,267 @@ fn weapon_animation(
     for (hud, mut animation, mut transform) in animated_weapons.iter_mut() {
         animation.progress += time.delta_seconds() * animation.animation_speed;
 
-        let (it, tt) = if animation.animate_forward {
-            (&animation.initial_transform, &animation.target_transform)
-        } else {
-            (&animation.target_transform, &animation.initial_transform)
-        };
-        transform.translation = it.translation.lerp(tt.translation, animation.progress);
-        transform.rotation = it.rotation.lerp(tt.rotation, animation.progress);
+        if animation.animate_forward {
+            transform.translation = animation
+                .initial_transform
+                .translation
+                .lerp(animation.target_transform.translation, animation.progress);
+            transform.rotation = animation
+                .initial_transform
+                .rotation
+                .lerp(animation.target_transform.rotation, animation.progress);
 
-        if 1.0 <= animation.progress {
-            if animation.animate_forward {
-                animation.progress = 0.0;
-                animation.animate_forward = false;
-            } else {
+            if 1.0 <= animation.progress {
+                if animation.animate_backward {
+                    animation.progress = 0.0;
+                    animation.animate_forward = false;
+                } else {
+                    let Some(mut e) = commands.get_entity(hud) else {
+                        return;
+                    };
+                    e.remove::<WeaponShootAnimation>();
+                }
+            }
+        } else if animation.animate_backward {
+            transform.translation = animation
+                .target_transform
+                .translation
+                .lerp(animation.initial_transform.translation, animation.progress);
+            transform.rotation = animation
+                .target_transform
+                .rotation
+                .lerp(animation.initial_transform.rotation, animation.progress);
+
+            if 1.0 <= animation.progress {
                 let Some(mut e) = commands.get_entity(hud) else {
                     return;
                 };
                 e.remove::<WeaponShootAnimation>();
             }
+        }
+    }
+}
+
+fn weapon_shoot(
+    weapons: Query<(&Weapon, &Children)>,
+    weapon_models: Query<&Transform, With<WeaponModel>>,
+    weapon_assets: Res<WeaponAssets>,
+    weapon_resources: Res<WeaponsResources>,
+    mut commands: Commands,
+    mut shoot_event: EventReader<ShootEvent>,
+) {
+    for e in shoot_event.read() {
+        if let Ok((weapon, weapon_children)) = weapons.get(e.weapon_entity) {
+            let (
+                projectile_offset_scale,
+                projectile_velocity,
+                damage,
+                shell_initial_velocity,
+                shell_scene,
+                animation_speed,
+                animate_forward,
+                animate_backward,
+                animation_translation,
+                animation_rotation_x,
+                animation_rotation_y,
+            ) = match weapon.weapon_type {
+                WeaponType::Pistol => (
+                    PISTOL_PROJECTILE_OFFSET_SCALE,
+                    PISTOL_PROJECTILE_VELOCITY,
+                    PISTOL_DAMAGE,
+                    PISTOL_SHELL_INITIAL_VELOCITY,
+                    weapon_assets.pistol_shell_scene.clone(),
+                    PISTOL_ANIMATION_SPEED,
+                    PISTOL_ANIMATION_FORWARD,
+                    PISTOL_ANIMATION_BACKWARD,
+                    PISTOL_ANIMATION_TARGET_OFFSET,
+                    PISTOL_ANIMATION_TARGET_ROTATION_X,
+                    PISTOL_ANIMATION_TARGET_ROTATION_Y,
+                ),
+                WeaponType::Shotgun => (
+                    SHOTGUN_PROJECTILE_OFFSET_SCALE,
+                    SHOTGUN_PROJECTILE_VELOCITY,
+                    SHOTGUN_DAMAGE,
+                    SHOTGUN_SHELL_INITIAL_VELOCITY,
+                    weapon_assets.shotgun_shell_scene.clone(),
+                    SHOTGUN_ANIMATION_SPEED,
+                    SHOTGUN_ANIMATION_FORWARD,
+                    SHOTGUN_ANIMATION_BACKWARD,
+                    SHOTGUN_ANIMATION_TARGET_OFFSET,
+                    SHOTGUN_ANIMATION_TARGET_ROTATION_X,
+                    SHOTGUN_ANIMATION_TARGET_ROTATION_Y,
+                ),
+                WeaponType::Minigun => (
+                    MINIGUN_PROJECTILE_OFFSET_SCALE,
+                    MINIGUN_PROJECTILE_VELOCITY,
+                    MINIGUN_DAMAGE,
+                    MINIGUN_SHELL_INITIAL_VELOCITY,
+                    weapon_assets.minigun_shell_scene.clone(),
+                    MINIGUN_ANIMATION_SPEED,
+                    MINIGUN_ANIMATION_FORWARD,
+                    MINIGUN_ANIMATION_BACKWARD,
+                    MINIGUN_ANIMATION_TARGET_OFFSET,
+                    MINIGUN_ANIMATION_TARGET_ROTATION_X,
+                    MINIGUN_ANIMATION_TARGET_ROTATION_Y,
+                ),
+            };
+
+            // spawn projectiles
+            match weapon.weapon_type {
+                WeaponType::Pistol => {
+                    let projectile_translation =
+                        e.weapon_translation + e.direction * projectile_offset_scale;
+                    commands.spawn(ProjectileBundle {
+                        pbr_bundle: PbrBundle {
+                            mesh: weapon_resources.projectile_mesh.clone(),
+                            material: weapon_resources.projectile_material.clone(),
+                            transform: Transform::from_translation(projectile_translation),
+                            ..default()
+                        },
+                        collider: Collider::ball(DEFAULT_PROJECTILE_SIZE),
+                        velocity: Velocity {
+                            linvel: e.direction * projectile_velocity,
+                            ..default()
+                        },
+                        damage: Damage { damage },
+                        ..default()
+                    });
+                }
+                WeaponType::Shotgun => {
+                    let projectile_translation =
+                        e.weapon_translation + e.direction * projectile_offset_scale;
+                    let right = e.direction.cross(Vec3::Z);
+
+                    let left_barrel = projectile_translation - right / 2.0;
+                    for modifier in [
+                        right / 3.0 + Vec3::Z / 3.0,
+                        -right / 3.0 + Vec3::Z / 3.0,
+                        right / 3.0 - Vec3::Z / 3.0,
+                        -right / 3.0 - Vec3::Z / 3.0,
+                    ] {
+                        let projectile_translation = left_barrel + modifier;
+                        commands.spawn(ProjectileBundle {
+                            pbr_bundle: PbrBundle {
+                                mesh: weapon_resources.projectile_mesh.clone(),
+                                material: weapon_resources.projectile_material.clone(),
+                                transform: Transform::from_translation(projectile_translation),
+                                ..default()
+                            },
+                            collider: Collider::ball(DEFAULT_PROJECTILE_SIZE),
+                            velocity: Velocity {
+                                linvel: e.direction * projectile_velocity,
+                                ..default()
+                            },
+                            damage: Damage { damage },
+                            ..default()
+                        });
+                    }
+
+                    let right_barrel = projectile_translation + right / 2.0;
+                    for modifier in [
+                        right / 3.0 + Vec3::Z / 3.0,
+                        -right / 3.0 + Vec3::Z / 3.0,
+                        right / 3.0 - Vec3::Z / 3.0,
+                        -right / 3.0 - Vec3::Z / 3.0,
+                    ] {
+                        let projectile_translation = right_barrel + modifier;
+                        commands.spawn(ProjectileBundle {
+                            pbr_bundle: PbrBundle {
+                                mesh: weapon_resources.projectile_mesh.clone(),
+                                material: weapon_resources.projectile_material.clone(),
+                                transform: Transform::from_translation(projectile_translation),
+                                ..default()
+                            },
+                            collider: Collider::ball(DEFAULT_PROJECTILE_SIZE),
+                            velocity: Velocity {
+                                linvel: e.direction * projectile_velocity,
+                                ..default()
+                            },
+                            damage: Damage { damage },
+                            ..default()
+                        });
+                    }
+                }
+                WeaponType::Minigun => {
+                    let projectile_translation =
+                        e.weapon_translation + e.direction * projectile_offset_scale;
+                    let right = e.direction.cross(Vec3::Z);
+
+                    let left_barrel = projectile_translation - right / 2.0;
+                    let projectile_translation = left_barrel;
+                    commands.spawn(ProjectileBundle {
+                        pbr_bundle: PbrBundle {
+                            mesh: weapon_resources.projectile_mesh.clone(),
+                            material: weapon_resources.projectile_material.clone(),
+                            transform: Transform::from_translation(projectile_translation),
+                            ..default()
+                        },
+                        collider: Collider::ball(DEFAULT_PROJECTILE_SIZE),
+                        velocity: Velocity {
+                            linvel: e.direction * projectile_velocity,
+                            ..default()
+                        },
+                        damage: Damage { damage },
+                        ..default()
+                    });
+
+                    let right_barrel = projectile_translation + right / 2.0;
+                    let projectile_translation = right_barrel;
+                    commands.spawn(ProjectileBundle {
+                        pbr_bundle: PbrBundle {
+                            mesh: weapon_resources.projectile_mesh.clone(),
+                            material: weapon_resources.projectile_material.clone(),
+                            transform: Transform::from_translation(projectile_translation),
+                            ..default()
+                        },
+                        collider: Collider::ball(DEFAULT_PROJECTILE_SIZE),
+                        velocity: Velocity {
+                            linvel: e.direction * projectile_velocity,
+                            ..default()
+                        },
+                        damage: Damage { damage },
+                        ..default()
+                    });
+                }
+            }
+
+            // spawn shell
+            let shell_direction = e.direction.cross(Vec3::Z);
+            commands.spawn(ShellBundle {
+                scene_bundle: SceneBundle {
+                    scene: shell_scene,
+                    transform: Transform::from_translation(e.weapon_translation)
+                        .with_scale(Vec3::new(2.0, 2.0, 2.0)),
+                    ..default()
+                },
+                velocity: Velocity {
+                    linvel: shell_direction * shell_initial_velocity,
+                    ..default()
+                },
+                ..default()
+            });
+
+            // start shooting animation
+            let weapon_model = weapon_children[0];
+            let Ok(weapon_model_transform) = weapon_models.get(weapon_model) else {
+                continue;
+            };
+            let initial_transform = *weapon_model_transform;
+            let mut target_transform = initial_transform;
+            target_transform.translation += animation_translation;
+            target_transform.rotation *= Quat::from_rotation_x(animation_rotation_x)
+                * Quat::from_rotation_y(animation_rotation_y);
+            let Some(mut e) = commands.get_entity(weapon_model) else {
+                continue;
+            };
+            e.insert(WeaponShootAnimation {
+                animate_forward,
+                animate_backward,
+                animation_speed,
+                progress: 0.0,
+                initial_transform,
+                target_transform,
+            });
         }
     }
 }

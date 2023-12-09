@@ -6,14 +6,15 @@ use crate::{
     enemies::{spawn_enemy, EnemyAssets, EnemyType},
     player::{spawn_player, PlayerResources},
     ui::UiResources,
-    weapons::{pistol::spawn_pistol, WeaponAssets},
+    weapons::{spawn_weapon, WeaponAssets, WeaponType},
 };
 
 use super::{
     door::{spawn_door, Door, DoorState, DoorType},
     spawn_light, LevelAssets, LevelColliderBundle, LevelObject, LevelResources, LevelType,
     COLUMN_HIGHT, COLUMN_SIZE, FILL_AMOUNT, FLOOR_THICKNESS, GRID_SIZE, LEVEL_ENEMIES,
-    LEVEL_LIGHTS_COVERAGE, LEVEL_SIZE, LEVEL_SMALL_ENEMIES_PERCENT, LEVEL_WEAPON_SPAWNS,
+    LEVEL_LIGHTS_COVERAGE, LEVEL_SIZE, LEVEL_SMALL_ENEMIES_PERCENT,
+    LEVEL_WEAPON_PISTOL_SPAWN_THRESHOLD, LEVEL_WEAPON_SHOTGUN_SPAWN_THRESHOLD, LEVEL_WEAPON_SPAWNS,
     STRIP_LENGTH,
 };
 
@@ -23,7 +24,7 @@ enum CellType {
     Door(Door),
     Column,
     Light,
-    Weapon,
+    Weapon(WeaponType),
     Enemy(EnemyType),
     Player,
 }
@@ -175,7 +176,15 @@ fn generate_level(previus_door: Option<Door>) -> [[CellType; GRID_SIZE]; GRID_SI
             random_cell_y = rng.gen_range(2..GRID_SIZE - 2);
         }
 
-        grid[random_cell_y][random_cell_x] = CellType::Weapon;
+        let random = rng.gen_range(0.0..1.0);
+        if random < LEVEL_WEAPON_PISTOL_SPAWN_THRESHOLD {
+            grid[random_cell_y][random_cell_x] = CellType::Weapon(WeaponType::Pistol);
+        }
+        if random < LEVEL_WEAPON_SHOTGUN_SPAWN_THRESHOLD {
+            grid[random_cell_y][random_cell_x] = CellType::Weapon(WeaponType::Shotgun);
+        } else {
+            grid[random_cell_y][random_cell_x] = CellType::Weapon(WeaponType::Minigun);
+        }
     }
 
     // generate enemies
@@ -310,11 +319,17 @@ pub fn spawn_level(
                         spawn_light(level_resources, commands, light_transform);
                     }
                 }
-                CellType::Weapon => {
-                    spawn_pistol(weapon_assets, commands, transform);
+                CellType::Weapon(weapon_type) => {
+                    spawn_weapon(weapon_assets, *weapon_type, commands, transform);
                 }
                 CellType::Enemy(enemy_type) => {
-                    spawn_enemy(enemy_assets, weapon_assets, *enemy_type, commands, transform);
+                    spawn_enemy(
+                        enemy_assets,
+                        weapon_assets,
+                        *enemy_type,
+                        commands,
+                        transform,
+                    );
                 }
                 CellType::Player => {
                     // we spanw player only once, so we can give him

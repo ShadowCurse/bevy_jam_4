@@ -7,8 +7,8 @@ use crate::{
     level::{LevelObject, LevelStarted},
     player::Player,
     weapons::{
-        pistol::{PistolBundle, PistolModel},
-        FreeFloatingWeaponBundle, ShootEvent, WeaponAssets, WeaponAttackTimer,
+        FreeFloatingWeaponBundle, ShootEvent, WeaponAssets, WeaponAttackTimer, WeaponBundle,
+        WeaponModel,
     },
     GlobalState, COLLISION_GROUP_ENEMY, COLLISION_GROUP_LEVEL, COLLISION_GROUP_PROJECTILES,
 };
@@ -313,20 +313,14 @@ pub fn spawn_enemy(
 
     let weapon_transform = Transform::from_translation(weapon_offset);
     let weapon = commands
-        .spawn((
-            PistolBundle {
-                transform_bundle: TransformBundle::from_transform(weapon_transform),
-                ..default()
-            },
-            EnemyWeapon,
-        ))
+        .spawn((WeaponBundle::pistol(weapon_transform), EnemyWeapon))
         .with_children(|builder| {
             builder.spawn((
                 SceneBundle {
                     scene: weapons_assets.pistol_scene.clone(),
                     ..default()
                 },
-                PistolModel,
+                WeaponModel,
             ));
         })
         .id();

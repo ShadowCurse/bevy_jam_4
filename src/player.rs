@@ -1,4 +1,6 @@
-use bevy::{core_pipeline::Skybox, input::mouse::MouseMotion, prelude::*};
+use bevy::{
+    core_pipeline::Skybox, input::mouse::MouseMotion, prelude::*, render::view::ColorGrading,
+};
 use bevy_rapier3d::{prelude::*, rapier::geometry::CollisionEventFlags};
 
 use crate::{
@@ -11,7 +13,7 @@ use crate::{
 
 const PLAYER_HEALTH: i32 = 500;
 
-const PLAYER_WEAPON_DEFAULT_TRANSLATION: Vec3 = Vec3::new(0.2, -0.5, -1.4);
+const PLAYER_WEAPON_DEFAULT_TRANSLATION: Vec3 = Vec3::new(0.0, -0.8, -1.7);
 const PLAYER_THROW_OFFSET_SCALE: f32 = 10.0;
 const PLAYER_THROW_STRENGTH: f32 = 20.0;
 
@@ -42,6 +44,7 @@ impl Plugin for PlayerPlugin {
         app.add_systems(
             Update,
             (
+                // test_camera_color_grading,
                 player_kills_reading,
                 player_hud_animation,
                 player_trigger_pause,
@@ -160,6 +163,12 @@ pub fn spawn_player(
                     Camera3dBundle {
                         transform: Transform::from_xyz(0.0, 0.0, 2.0)
                             .looking_at(Vec3::new(0.0, 1.0, 2.0), Vec3::Z),
+                        color_grading: ColorGrading {
+                            exposure: 0.0,
+                            gamma: 1.0,
+                            pre_saturation: 1.0,
+                            post_saturation: 1.0,
+                        },
                         ..default()
                     },
                     UiCameraConfig { show_ui: false },
@@ -228,6 +237,29 @@ pub fn spawn_player(
 
     println!("player id: {id:?}");
     commands.entity(id).log_components();
+}
+
+fn test_camera_color_grading(
+    time: Res<Time>,
+    mut b: Local<bool>,
+    mut player_camera: Query<&mut ColorGrading, With<PlayerCamera>>,
+) {
+    let Ok(mut grading) = player_camera.get_single_mut() else {
+        return;
+    };
+    println!("current gamma: {}", grading.gamma);
+
+    if *b {
+        grading.gamma += 1.0 * time.delta_seconds();
+        if grading.gamma >= 5.0 {
+            *b = !*b;
+        }
+    } else {
+        grading.gamma -= 1.0 * time.delta_seconds();
+        if grading.gamma <= 0.0 {
+            *b = !*b;
+        }
+    }
 }
 
 fn init_resources(
