@@ -23,7 +23,7 @@ pub struct Damage {
     pub damage: i32,
 }
 
-#[derive(Component)]
+#[derive(Default, Component)]
 pub struct Health {
     pub health: i32,
 }

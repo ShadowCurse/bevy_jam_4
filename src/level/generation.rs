@@ -3,7 +3,7 @@ use bevy_rapier3d::prelude::*;
 use rand::Rng;
 
 use crate::{
-    enemies::{fridge::spawn_fridge, EnemyAssets},
+    enemies::{spawn_enemy, EnemyAssets, EnemyType},
     player::{spawn_player, PlayerResources},
     ui::UiResources,
     weapons::{pistol::spawn_pistol, WeaponAssets},
@@ -309,7 +309,13 @@ pub fn spawn_level(
                     spawn_pistol(weapon_assets, commands, transform);
                 }
                 CellType::Enemy => {
-                    spawn_fridge(weapon_assets, enemy_assets, commands, transform);
+                    spawn_enemy(
+                        enemy_assets,
+                        weapon_assets,
+                        EnemyType::Mid,
+                        commands,
+                        transform,
+                    );
                 }
                 CellType::Player => {
                     // we spanw player only once, so we can give him
