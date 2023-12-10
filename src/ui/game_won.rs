@@ -4,7 +4,8 @@ use crate::{utils::remove_all_with, GlobalState, UiState};
 
 use super::{spawn_button, ButtonText, UiConfig};
 
-const GAME_WON_TEXT: &str = "Congratulations. You won.";
+const GAME_WON_TEXT: &str =
+    "Congratulations.\nYou have defeated the RED DRAGON and ended his world conquest.";
 
 pub struct GameWonPlugin;
 
@@ -37,7 +38,8 @@ fn setup_pause_menu(mut commands: Commands, config: Res<UiConfig>) {
         .with_children(|builder| {
             builder.spawn(
                 (TextBundle {
-                    text: Text::from_section(GAME_WON_TEXT, config.created_by_text_style.clone()),
+                    text: Text::from_section(GAME_WON_TEXT, config.created_by_text_style.clone())
+                        .with_alignment(TextAlignment::Center),
                     ..default()
                 })
                 .with_style(config.title_style.clone()),
