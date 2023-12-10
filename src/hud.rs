@@ -70,6 +70,14 @@ impl Plugin for HudPlugin {
         );
 
         app.add_systems(
+            OnTransition {
+                from: GlobalState::InGame,
+                to: GlobalState::GameWon,
+            },
+            (disable_hud, despawn_all_damage_points),
+        );
+
+        app.add_systems(
             Update,
             (display_incomming_damage, despawn_damage_points).run_if(in_state(GlobalState::InGame)),
         );

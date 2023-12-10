@@ -124,6 +124,7 @@ pub enum GlobalState {
     InGame,
     Paused,
     GameOver,
+    GameWon,
 }
 impl_into_state!(GlobalState);
 
@@ -136,6 +137,7 @@ pub enum UiState {
     Stats,
     Paused,
     GameOver,
+    GameWon,
 }
 impl_into_state!(UiState);
 

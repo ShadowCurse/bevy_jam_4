@@ -131,6 +131,22 @@ impl Plugin for LevelPlugin {
         );
 
         app.add_systems(
+            OnTransition {
+                from: GlobalState::InGame,
+                to: GlobalState::GameWon,
+            },
+            stop_physics,
+        );
+
+        app.add_systems(
+            OnTransition {
+                from: GlobalState::GameWon,
+                to: GlobalState::MainMenu,
+            },
+            (remove_all_with::<LevelObject>, remove_all_with::<Player>),
+        );
+
+        app.add_systems(
             Update,
             (
                 level_progress,
@@ -426,6 +442,7 @@ fn spawn_initial_level(
         false,
     );
 
+    println!("spawning initial level");
     commands.insert_resource(LevelInfo {
         finished: false,
         level_type: LevelType::Covered,
@@ -440,6 +457,7 @@ fn level_progress(
     mut level_info: ResMut<LevelInfo>,
     mut level_started_events: EventReader<LevelStarted>,
     mut level_finished_events: EventWriter<LevelFinished>,
+    mut global_state: ResMut<NextState<GlobalState>>,
 ) {
     for _ in level_started_events.read() {
         level_info.finished = false;
@@ -449,6 +467,13 @@ fn level_progress(
     if remaining_enemies == 0 && !level_info.finished {
         level_info.finished = true;
         level_info.game_progress += 10;
+
+        // if boss level is finished
+        if 100 < level_info.game_progress {
+            global_state.set(GlobalState::GameWon);
+            return;
+        }
+
         level_finished_events.send(LevelFinished);
     }
 }

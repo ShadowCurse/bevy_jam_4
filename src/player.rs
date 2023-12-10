@@ -39,6 +39,7 @@ impl Plugin for PlayerPlugin {
         app.add_systems(OnEnter(GlobalState::InGame), player_toggle_hud_off);
         app.add_systems(OnEnter(GlobalState::Paused), player_toggle_hud_on);
         app.add_systems(OnEnter(GlobalState::GameOver), player_toggle_hud_on);
+        app.add_systems(OnEnter(GlobalState::GameWon), player_toggle_hud_on);
 
         app.add_systems(Update, player_hud_animation);
 
@@ -53,7 +54,6 @@ impl Plugin for PlayerPlugin {
                 player_throw_weapon,
                 player_update,
                 player_move,
-                player_camera_switch,
                 player_camera_update,
                 player_weapon_update,
             )
@@ -96,9 +96,6 @@ pub struct PlayerCamera {
     pub bounce_amplitude_modifier_speed: f32,
     pub bounce_amplitude_modifier_max: f32,
 }
-
-#[derive(Component)]
-struct PlayerTestCamera;
 
 #[derive(Component)]
 struct PlayerHud;
@@ -213,18 +210,17 @@ pub fn spawn_player(
                         });
                 });
 
-            builder.spawn((
-                Camera3dBundle {
-                    transform: Transform::from_xyz(0.0, -20.0, 3.0)
-                        .looking_at(Vec3::new(0.0, 0.0, 0.0), Vec3::Z),
-                    camera: Camera {
-                        is_active: false,
-                        ..default()
-                    },
+            // disabled camera for ui interaction
+            builder.spawn((Camera3dBundle {
+                transform: Transform::from_xyz(0.0, -20.0, 3.0)
+                    .looking_at(Vec3::new(0.0, 0.0, 0.0), Vec3::Z),
+                camera: Camera {
+                    order: 99,
+                    is_active: false,
                     ..default()
                 },
-                PlayerTestCamera,
-            ));
+                ..default()
+            },));
         })
         .id();
 
@@ -271,10 +267,7 @@ fn player_trigger_pause(
     }
 }
 
-fn player_toggle_hud_on(
-    hud: Query<Entity, (With<PlayerHud>, Without<PlayerHudAnimation>)>,
-    mut commands: Commands,
-) {
+fn player_toggle_hud_on(hud: Query<Entity, With<PlayerHud>>, mut commands: Commands) {
     let Ok(hud) = hud.get_single() else {
         return;
     };
@@ -296,10 +289,7 @@ fn player_toggle_hud_on(
     });
 }
 
-fn player_toggle_hud_off(
-    hud: Query<Entity, (With<PlayerHud>, Without<PlayerHudAnimation>)>,
-    mut commands: Commands,
-) {
+fn player_toggle_hud_off(hud: Query<Entity, With<PlayerHud>>, mut commands: Commands) {
     let Ok(hud) = hud.get_single() else {
         return;
     };
@@ -341,7 +331,6 @@ fn player_hud_animation(
     );
 
     if 1.0 <= hud_animation.progress {
-        println!("hud animation finished");
         let Some(mut e) = commands.get_entity(hud) else {
             return;
         };
@@ -619,25 +608,6 @@ fn player_move(
     }
 
     transform.translation += movement;
-}
-
-fn player_camera_switch(
-    keys: Res<Input<KeyCode>>,
-    mut player_camera: Query<&mut Camera, (With<PlayerCamera>, Without<PlayerTestCamera>)>,
-    mut test_camera: Query<&mut Camera, (With<PlayerTestCamera>, Without<PlayerCamera>)>,
-) {
-    let Ok(mut player_camera) = player_camera.get_single_mut() else {
-        return;
-    };
-
-    let Ok(mut test_camera) = test_camera.get_single_mut() else {
-        return;
-    };
-
-    if keys.just_pressed(KeyCode::Q) {
-        player_camera.is_active = !player_camera.is_active;
-        test_camera.is_active = !test_camera.is_active;
-    }
 }
 
 // TODO make better

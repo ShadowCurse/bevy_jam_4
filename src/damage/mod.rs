@@ -52,7 +52,6 @@ fn apply_damage(
         if flags.contains(CollisionEventFlags::SENSOR) {
             return;
         }
-        println!("got collision event: {:?}", collision_event);
 
         let ((damage_entity, damage), (entity, mut entity_health)) =
             if let Ok(p) = damage_objects.get(*collider_1) {

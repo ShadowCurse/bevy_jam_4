@@ -17,6 +17,7 @@ use bevy_asset_loader::prelude::*;
 use crate::{utils::set_state, GlobalState, UiState};
 
 mod game_over;
+mod game_won;
 mod main_menu;
 mod options;
 mod pause;
@@ -29,6 +30,7 @@ impl Plugin for UiPlugin {
         app.add_collection_to_loading_state::<_, UiAssets>(GlobalState::AssetLoading);
 
         app.add_plugins(game_over::GameOverPlugin);
+        app.add_plugins(game_won::GameWonPlugin);
         app.add_plugins(stats::StatsPlugin);
         app.add_plugins(main_menu::MainMenuPlugin);
         app.add_plugins(options::OptionsPlugin);
@@ -102,6 +104,24 @@ impl Plugin for UiPlugin {
         app.add_systems(
             OnTransition {
                 from: GlobalState::GameOver,
+                to: GlobalState::MainMenu,
+            },
+            set_state::<UiState, { UiState::MainMenu as u8 }>,
+        );
+
+        app.add_systems(
+            OnTransition {
+                from: GlobalState::InGame,
+                to: GlobalState::GameWon,
+            },
+            (
+                set_state::<UiState, { UiState::GameWon as u8 }>,
+                release_mouse,
+            ),
+        );
+        app.add_systems(
+            OnTransition {
+                from: GlobalState::GameWon,
                 to: GlobalState::MainMenu,
             },
             set_state::<UiState, { UiState::MainMenu as u8 }>,
@@ -255,6 +275,7 @@ fn setup_ui_config(ui_assets: Res<UiAssets>, mut commands: Commands) {
         menu_style: Style {
             display: Display::Grid,
             margin: UiRect::all(Val::Auto),
+            justify_items: JustifyItems::Center,
             justify_self: JustifySelf::Center,
             align_items: AlignItems::Center,
             align_self: AlignSelf::Center,
@@ -280,7 +301,10 @@ fn setup_ui_config(ui_assets: Res<UiAssets>, mut commands: Commands) {
         },
 
         title_style: Style {
+            justify_items: JustifyItems::Center,
             justify_self: JustifySelf::Center,
+            align_items: AlignItems::Center,
+            align_self: AlignSelf::Center,
             ..default()
         },
         title_text_style: TextStyle {
