@@ -14,6 +14,8 @@ use super::{
 const DOOR_ANIMATION_DISTANCE: f32 = COLUMN_SIZE - 0.2;
 const DOOR_ANIMATION_SPEED: f32 = 2.0;
 
+const DOOR_LIGHT_OFFSET: Vec3 = Vec3::new(0.0, 0.0, 3.0);
+
 pub struct DoorPlugin;
 
 impl Plugin for DoorPlugin {
@@ -60,6 +62,12 @@ pub struct DoorAnimation {
     animation_progress: f32,
     original_translation: Vec3,
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Component)]
+pub struct DoorLightMesh;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Component)]
+pub struct DoorLight;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Component)]
 pub struct Door {
@@ -175,12 +183,24 @@ pub fn spawn_door(
 
     let door_collider =
         Collider::cuboid(COLUMN_SIZE / 2.0, DOOR_THICKNESS / 2.0, COLUMN_HIGHT / 2.0);
+
+    let (door_light_color, door_light_material) = match door.door_state {
+        DoorState::Unlocked => (
+            Color::GREEN,
+            level_resources.door_open_light_material.clone(),
+        ),
+        _ => (
+            Color::RED,
+            level_resources.door_closed_light_material.clone(),
+        ),
+    };
+
     let door_entity = if door.door_state == DoorState::TemporaryOpen {
         commands
             .spawn((
                 DoorBundle::new(
                     level_resources.door_mesh.clone(),
-                    level_resources.door_closed_material.clone(),
+                    level_resources.door_material.clone(),
                     Transform::default(),
                     door_collider,
                     door,
@@ -191,16 +211,68 @@ pub fn spawn_door(
                     original_translation: Vec3::default(),
                 },
             ))
+            .with_children(|builder| {
+                builder
+                    .spawn((
+                        PbrBundle {
+                            mesh: level_resources.door_light_mesh.clone(),
+                            material: door_light_material,
+                            transform: Transform::from_translation(DOOR_LIGHT_OFFSET),
+                            ..default()
+                        },
+                        DoorLightMesh,
+                    ))
+                    .with_children(|builder| {
+                        builder.spawn((
+                            PointLightBundle {
+                                point_light: PointLight {
+                                    color: door_light_color,
+                                    intensity: 2000.0,
+                                    range: 100.0,
+                                    ..default()
+                                },
+                                ..default()
+                            },
+                            DoorLight,
+                        ));
+                    });
+            })
             .id()
     } else {
         commands
             .spawn(DoorBundle::new(
                 level_resources.door_mesh.clone(),
-                level_resources.door_closed_material.clone(),
+                level_resources.door_material.clone(),
                 Transform::default(),
                 door_collider,
                 door,
             ))
+            .with_children(|builder| {
+                builder
+                    .spawn((
+                        PbrBundle {
+                            mesh: level_resources.door_light_mesh.clone(),
+                            material: door_light_material,
+                            transform: Transform::from_translation(DOOR_LIGHT_OFFSET),
+                            ..default()
+                        },
+                        DoorLightMesh,
+                    ))
+                    .with_children(|builder| {
+                        builder.spawn((
+                            PointLightBundle {
+                                point_light: PointLight {
+                                    color: door_light_color,
+                                    intensity: 2000.0,
+                                    range: 100.0,
+                                    ..default()
+                                },
+                                ..default()
+                            },
+                            DoorLight,
+                        ));
+                    });
+            })
             .id()
     };
 
@@ -221,13 +293,20 @@ pub fn spawn_door(
 fn level_finished(
     level_resources: Res<LevelResources>,
     mut level_finished_events: EventReader<LevelFinished>,
-    mut doors: Query<(&mut Door, &mut Handle<StandardMaterial>), With<Door>>,
+    mut doors: Query<&mut Door, With<Door>>,
+    mut door_lights: Query<&mut PointLight, With<DoorLight>>,
+    mut door_light_meshes: Query<&mut Handle<StandardMaterial>, With<DoorLightMesh>>,
 ) {
     if !level_finished_events.is_empty() {
         level_finished_events.clear();
-        for (mut door, mut door_material) in doors.iter_mut() {
-            *door_material = level_resources.door_open_material.clone();
+        for mut door in doors.iter_mut() {
             door.door_state = DoorState::Unlocked;
+        }
+        for mut light in door_lights.iter_mut() {
+            light.color = Color::GREEN;
+        }
+        for mut light_material in door_light_meshes.iter_mut() {
+            *light_material = level_resources.door_open_light_material.clone();
         }
     }
 }

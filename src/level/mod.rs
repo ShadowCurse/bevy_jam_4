@@ -164,8 +164,10 @@ struct LevelResources {
     column_mesh: Handle<Mesh>,
     column_material: Handle<StandardMaterial>,
     door_mesh: Handle<Mesh>,
-    door_closed_material: Handle<StandardMaterial>,
-    door_open_material: Handle<StandardMaterial>,
+    door_material: Handle<StandardMaterial>,
+    door_light_mesh: Handle<Mesh>,
+    door_closed_light_material: Handle<StandardMaterial>,
+    door_open_light_material: Handle<StandardMaterial>,
     light_mesh: Handle<Mesh>,
     light_material: Handle<StandardMaterial>,
 }
@@ -340,8 +342,20 @@ fn init_resources(
     let column_material = materials.add(Color::DARK_GRAY.into());
 
     let door_mesh = meshes.add(shape::Box::new(COLUMN_SIZE, DOOR_THICKNESS, COLUMN_HIGHT).into());
-    let door_closed_material = materials.add(Color::RED.into());
-    let door_open_material = materials.add(Color::BLUE.into());
+    let door_material = materials.add(Color::DARK_GRAY.into());
+
+    let door_light_mesh =
+        meshes.add(shape::Box::new(2.5, 2.5, 1.0).into());
+    let door_open_light_material = materials.add(StandardMaterial {
+        base_color: Color::GREEN,
+        emissive: Color::GREEN,
+        ..default()
+    });
+    let door_closed_light_material = materials.add(StandardMaterial {
+        base_color: Color::RED,
+        emissive: Color::RED,
+        ..default()
+    });
 
     let light_mesh = meshes.add(shape::Box::new(LIGHT_SIZE, LIGHT_SIZE, LIGHT_THICKENSS).into());
     let light_material = materials.add(StandardMaterial {
@@ -371,8 +385,10 @@ fn init_resources(
         column_mesh,
         column_material,
         door_mesh,
-        door_closed_material,
-        door_open_material,
+        door_material,
+        door_light_mesh,
+        door_open_light_material,
+        door_closed_light_material,
         light_mesh,
         light_material,
     });

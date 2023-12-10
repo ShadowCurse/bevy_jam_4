@@ -87,6 +87,7 @@ fn generate_level(previus_door: Option<Door>) -> [[CellType; GRID_SIZE]; GRID_SI
         }
     } else {
         // if it is the first level place at the bottom
+        door_top_state = DoorState::Unlocked;
         grid[1][door_top_pos] = CellType::Player;
     }
     grid[0][door_top_pos] = CellType::Door(Door {
