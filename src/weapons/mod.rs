@@ -75,13 +75,6 @@ impl Plugin for WeaponsPlugin {
         app.add_event::<ShootEvent>();
 
         app.add_systems(
-            OnTransition {
-                from: GlobalState::AssetLoading,
-                to: GlobalState::MainMenu,
-            },
-            init_resources,
-        );
-        app.add_systems(
             Update,
             (
                 update_attack_timers,
@@ -109,12 +102,9 @@ pub struct WeaponAssets {
     pub minigun_scene: Handle<Scene>,
     #[asset(path = "minigun/minigun_shell.glb#Scene0")]
     pub minigun_shell_scene: Handle<Scene>,
-}
 
-#[derive(Resource)]
-pub struct WeaponsResources {
-    pub projectile_mesh: Handle<Mesh>,
-    pub projectile_material: Handle<StandardMaterial>,
+    #[asset(path = "round.glb#Scene0")]
+    pub round_scene: Handle<Scene>,
 }
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
@@ -232,7 +222,7 @@ pub struct Projectile {
 
 #[derive(Bundle)]
 pub struct ProjectileBundle {
-    pub pbr_bundle: PbrBundle,
+    pub scene_bundle: SceneBundle,
     pub rigid_body: RigidBody,
     pub collider: Collider,
     pub collision_groups: CollisionGroups,
@@ -247,7 +237,7 @@ pub struct ProjectileBundle {
 impl Default for ProjectileBundle {
     fn default() -> Self {
         Self {
-            pbr_bundle: PbrBundle::default(),
+            scene_bundle: SceneBundle::default(),
             rigid_body: RigidBody::Dynamic,
             collider: Collider::default(),
             collision_groups: CollisionGroups::new(
@@ -329,26 +319,6 @@ impl WeaponAttackTimer {
             ready: false,
         }
     }
-}
-
-fn init_resources(
-    mut commands: Commands,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-    mut meshes: ResMut<Assets<Mesh>>,
-) {
-    let projectile_mesh = meshes.add(
-        shape::UVSphere {
-            radius: DEFAULT_PROJECTILE_SIZE,
-            ..default()
-        }
-        .into(),
-    );
-    let projectile_material = materials.add(Color::ORANGE_RED.into());
-
-    commands.insert_resource(WeaponsResources {
-        projectile_mesh,
-        projectile_material,
-    });
 }
 
 pub fn spawn_weapon(
@@ -487,7 +457,6 @@ fn weapon_shoot(
     weapons: Query<(&Weapon, &Children)>,
     weapon_models: Query<&Transform, With<WeaponModel>>,
     weapon_assets: Res<WeaponAssets>,
-    weapon_resources: Res<WeaponsResources>,
     mut commands: Commands,
     mut shoot_event: EventReader<ShootEvent>,
 ) {
@@ -550,15 +519,20 @@ fn weapon_shoot(
             let right = e.direction.cross(Vec3::Z);
 
             // spawn projectiles
+            let mut projectile_angle = e.direction.angle_between(Vec3::Y);
+            if e.direction.cross(Vec3::Y).z >= 0.0 {
+                projectile_angle *= -1.0;
+            }
+            let projectile_rotation = Quat::from_rotation_z(projectile_angle);
             match weapon.weapon_type {
                 WeaponType::Pistol => {
                     let projectile_translation =
                         e.weapon_translation + e.direction * projectile_offset_scale;
                     commands.spawn(ProjectileBundle {
-                        pbr_bundle: PbrBundle {
-                            mesh: weapon_resources.projectile_mesh.clone(),
-                            material: weapon_resources.projectile_material.clone(),
-                            transform: Transform::from_translation(projectile_translation),
+                        scene_bundle: SceneBundle {
+                            scene: weapon_assets.round_scene.clone(),
+                            transform: Transform::from_translation(projectile_translation)
+                                .with_rotation(projectile_rotation),
                             ..default()
                         },
                         collider: Collider::ball(DEFAULT_PROJECTILE_SIZE),
@@ -586,10 +560,10 @@ fn weapon_shoot(
                     ] {
                         let projectile_translation = left_barrel + modifier;
                         commands.spawn(ProjectileBundle {
-                            pbr_bundle: PbrBundle {
-                                mesh: weapon_resources.projectile_mesh.clone(),
-                                material: weapon_resources.projectile_material.clone(),
-                                transform: Transform::from_translation(projectile_translation),
+                            scene_bundle: SceneBundle {
+                                scene: weapon_assets.round_scene.clone(),
+                                transform: Transform::from_translation(projectile_translation)
+                                    .with_rotation(projectile_rotation),
                                 ..default()
                             },
                             collider: Collider::ball(DEFAULT_PROJECTILE_SIZE),
@@ -614,10 +588,10 @@ fn weapon_shoot(
                     ] {
                         let projectile_translation = right_barrel + modifier;
                         commands.spawn(ProjectileBundle {
-                            pbr_bundle: PbrBundle {
-                                mesh: weapon_resources.projectile_mesh.clone(),
-                                material: weapon_resources.projectile_material.clone(),
-                                transform: Transform::from_translation(projectile_translation),
+                            scene_bundle: SceneBundle {
+                                scene: weapon_assets.round_scene.clone(),
+                                transform: Transform::from_translation(projectile_translation)
+                                    .with_rotation(projectile_rotation),
                                 ..default()
                             },
                             collider: Collider::ball(DEFAULT_PROJECTILE_SIZE),
@@ -639,10 +613,10 @@ fn weapon_shoot(
 
                     let left_barrel = projectile_translation - right / 2.0;
                     commands.spawn(ProjectileBundle {
-                        pbr_bundle: PbrBundle {
-                            mesh: weapon_resources.projectile_mesh.clone(),
-                            material: weapon_resources.projectile_material.clone(),
-                            transform: Transform::from_translation(left_barrel),
+                        scene_bundle: SceneBundle {
+                            scene: weapon_assets.round_scene.clone(),
+                            transform: Transform::from_translation(left_barrel)
+                                .with_rotation(projectile_rotation),
                             ..default()
                         },
                         collider: Collider::ball(DEFAULT_PROJECTILE_SIZE),
@@ -659,10 +633,10 @@ fn weapon_shoot(
 
                     let right_barrel = projectile_translation + right / 2.0;
                     commands.spawn(ProjectileBundle {
-                        pbr_bundle: PbrBundle {
-                            mesh: weapon_resources.projectile_mesh.clone(),
-                            material: weapon_resources.projectile_material.clone(),
-                            transform: Transform::from_translation(right_barrel),
+                        scene_bundle: SceneBundle {
+                            scene: weapon_assets.round_scene.clone(),
+                            transform: Transform::from_translation(right_barrel)
+                                .with_rotation(projectile_rotation),
                             ..default()
                         },
                         collider: Collider::ball(DEFAULT_PROJECTILE_SIZE),
