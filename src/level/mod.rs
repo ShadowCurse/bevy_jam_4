@@ -442,7 +442,6 @@ fn spawn_initial_level(
         false,
     );
 
-    println!("spawning initial level");
     commands.insert_resource(LevelInfo {
         finished: false,
         level_type: LevelType::Covered,

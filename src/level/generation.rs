@@ -408,6 +408,7 @@ pub fn spawn_level(
         // move player back
         let new_player_pos = (player_pos.0 + 3, player_pos.1);
         grid[player_pos.0][player_pos.1] = CellType::Light;
+        grid[player_pos.0 + 1][player_pos.1] = CellType::Weapon(WeaponType::Pistol);
         grid[new_player_pos.0][new_player_pos.1] = CellType::Player;
 
         // place walls around player
