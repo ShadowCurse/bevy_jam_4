@@ -10,6 +10,7 @@ use bevy::{
         },
         view::RenderLayers,
     },
+    window::CursorGrabMode,
 };
 use bevy_asset_loader::prelude::*;
 
@@ -51,7 +52,7 @@ impl Plugin for UiPlugin {
                 from: GlobalState::MainMenu,
                 to: GlobalState::InGame,
             },
-            set_state::<UiState, { UiState::Stats as u8 }>,
+            (set_state::<UiState, { UiState::Stats as u8 }>, grab_mouse),
         );
 
         app.add_systems(
@@ -59,7 +60,10 @@ impl Plugin for UiPlugin {
                 from: GlobalState::InGame,
                 to: GlobalState::Paused,
             },
-            set_state::<UiState, { UiState::Paused as u8 }>,
+            (
+                set_state::<UiState, { UiState::Paused as u8 }>,
+                release_mouse,
+            ),
         );
 
         app.add_systems(
@@ -67,7 +71,7 @@ impl Plugin for UiPlugin {
                 from: GlobalState::Paused,
                 to: GlobalState::InGame,
             },
-            set_state::<UiState, { UiState::Stats as u8 }>,
+            (set_state::<UiState, { UiState::Stats as u8 }>, grab_mouse),
         );
         app.add_systems(
             OnTransition {
@@ -82,7 +86,10 @@ impl Plugin for UiPlugin {
                 from: GlobalState::InGame,
                 to: GlobalState::GameOver,
             },
-            set_state::<UiState, { UiState::GameOver as u8 }>,
+            (
+                set_state::<UiState, { UiState::GameOver as u8 }>,
+                release_mouse,
+            ),
         );
 
         app.add_systems(
@@ -90,7 +97,7 @@ impl Plugin for UiPlugin {
                 from: GlobalState::GameOver,
                 to: GlobalState::InGame,
             },
-            set_state::<UiState, { UiState::Stats as u8 }>,
+            (set_state::<UiState, { UiState::Stats as u8 }>, grab_mouse),
         );
         app.add_systems(
             OnTransition {
@@ -317,6 +324,18 @@ fn setup_ui_config(ui_assets: Res<UiAssets>, mut commands: Commands) {
             color: Color::WHITE,
         },
     });
+}
+
+fn grab_mouse(mut windows: Query<&mut Window>) {
+    let mut window = windows.single_mut();
+    window.cursor.visible = false;
+    window.cursor.grab_mode = CursorGrabMode::Locked;
+}
+
+fn release_mouse(mut windows: Query<&mut Window>) {
+    let mut window = windows.single_mut();
+    window.cursor.visible = true;
+    window.cursor.grab_mode = CursorGrabMode::None;
 }
 
 fn spawn_button<B>(builder: &mut ChildBuilder, style: &UiConfig, button: B)
