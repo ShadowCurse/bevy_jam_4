@@ -196,7 +196,7 @@ struct LevelResources {
 pub struct LevelObject;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
-enum LevelColor {
+pub enum LevelColor {
     Pink,
     Orange,
     Blue,
@@ -242,7 +242,7 @@ impl Distribution<LevelColor> for Standard {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
-enum LevelType {
+pub enum LevelType {
     Covered,
     Open(LevelColor),
 }

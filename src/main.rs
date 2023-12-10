@@ -40,7 +40,6 @@ fn main() {
 
     app.add_plugins((
         DefaultPlugins
-            // .set(ImagePlugin::default_nearest())
             .set(WindowPlugin {
                 primary_window: Some(Window {
                     title: GAME_NAME.to_string(),
@@ -51,7 +50,7 @@ fn main() {
                 ..default()
             }),
         RapierPhysicsPlugin::<NoUserData>::default(),
-        RapierDebugRenderPlugin::default(),
+        // RapierDebugRenderPlugin::default(),
         damage::DamagePlugin,
         enemies::EnemiesPlugin,
         hud::HudPlugin,

@@ -33,8 +33,6 @@ enum CellType {
 // |
 // -->x
 fn generate_boss_level(previus_door: Option<Door>) -> [[CellType; GRID_SIZE]; GRID_SIZE] {
-    let mut rng = rand::thread_rng();
-
     // row order
     let mut grid = [[CellType::Empty; GRID_SIZE]; GRID_SIZE];
 
