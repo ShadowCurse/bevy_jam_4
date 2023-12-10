@@ -36,7 +36,8 @@ pub struct Health {
 }
 
 fn apply_damage(
-    projectiles: Query<(&Damage, &Projectile)>,
+    projectiles: Query<&Projectile>,
+    damage_objects: Query<(Entity, &Damage)>,
     mut commands: Commands,
     mut kill_events: EventWriter<KillEvent>,
     mut damage_events: EventWriter<DamageEvent>,
@@ -48,19 +49,20 @@ fn apply_damage(
             CollisionEvent::Started(c1, c2, f) => (c1, c2, f),
             CollisionEvent::Stopped(c1, c2, f) => (c1, c2, f),
         };
-        if flags.contains(CollisionEventFlags::REMOVED) {
+        if flags.contains(CollisionEventFlags::SENSOR) {
             return;
         }
+        println!("got collision event: {:?}", collision_event);
 
-        let ((projectile_damage, projectile), (entity, mut entity_health)) =
-            if let Ok(p) = projectiles.get(*collider_1) {
+        let ((damage_entity, damage), (entity, mut entity_health)) =
+            if let Ok(p) = damage_objects.get(*collider_1) {
                 let e = if let Ok(e) = entities.get_mut(*collider_2) {
                     e
                 } else {
                     continue;
                 };
                 (p, e)
-            } else if let Ok(p) = projectiles.get(*collider_2) {
+            } else if let Ok(p) = damage_objects.get(*collider_2) {
                 let e = if let Ok(e) = entities.get_mut(*collider_1) {
                     e
                 } else {
@@ -75,12 +77,23 @@ fn apply_damage(
         if entity_health.health <= 0 {
             continue;
         }
+        entity_health.health -= damage.damage;
 
-        entity_health.health -= projectile_damage.damage;
+        let Some(mut e) = commands.get_entity(damage_entity) else {
+            continue;
+        };
+        e.remove::<Damage>();
+
         if entity_health.health <= 0 {
-            commands.get_entity(entity).unwrap().remove::<Health>();
+            let Some(mut e) = commands.get_entity(entity) else {
+                continue;
+            };
+            e.remove::<Health>();
             kill_events.send(KillEvent { entity });
         } else {
+            let Ok(projectile) = projectiles.get(damage_entity) else {
+                continue;
+            };
             damage_events.send(DamageEvent {
                 entity,
                 direction: projectile.direction,

@@ -4,18 +4,19 @@ use bevy::{
 use bevy_rapier3d::{prelude::*, rapier::geometry::CollisionEventFlags};
 
 use crate::{
-    damage::{Health, KillEvent},
+    damage::{Damage, Health, KillEvent},
     ui::UiResources,
     weapons::{Ammo, FreeFloatingWeapon, FreeFloatingWeaponBundle, ShootEvent, WeaponAttackTimer},
-    GameSettings, GlobalState, COLLISION_GROUP_LEVEL, COLLISION_GROUP_PICKUP,
-    COLLISION_GROUP_PLAYER, COLLISION_GROUP_PROJECTILES,
+    GameSettings, GlobalState, COLLISION_GROUP_ENEMY, COLLISION_GROUP_LEVEL,
+    COLLISION_GROUP_PICKUP, COLLISION_GROUP_PLAYER, COLLISION_GROUP_PROJECTILES,
 };
 
 const PLAYER_HEALTH: i32 = 50000;
 
 const PLAYER_WEAPON_DEFAULT_TRANSLATION: Vec3 = Vec3::new(0.0, -0.8, -1.7);
 const PLAYER_THROW_OFFSET_SCALE: f32 = 10.0;
-const PLAYER_THROW_STRENGTH: f32 = 20.0;
+const PLAYER_THROW_STRENGTH: f32 = 80.0;
+const PLAYER_THROW_DAMAGE: i32 = 50;
 
 const PLAYER_HUD_ANIMATION_SPEED: f32 = 5.0;
 const PLAYER_HUD_ON_TRANSLATION: Vec3 = Vec3::new(0.0, 0.0, -0.45);
@@ -44,7 +45,6 @@ impl Plugin for PlayerPlugin {
         app.add_systems(
             Update,
             (
-                // test_camera_color_grading,
                 player_kills_reading,
                 player_hud_animation,
                 player_trigger_pause,
@@ -236,29 +236,6 @@ pub fn spawn_player(
 
     println!("player id: {id:?}");
     commands.entity(id).log_components();
-}
-
-fn test_camera_color_grading(
-    time: Res<Time>,
-    mut b: Local<bool>,
-    mut player_camera: Query<&mut ColorGrading, With<PlayerCamera>>,
-) {
-    let Ok(mut grading) = player_camera.get_single_mut() else {
-        return;
-    };
-    println!("current gamma: {}", grading.gamma);
-
-    if *b {
-        grading.gamma += 1.0 * time.delta_seconds();
-        if grading.gamma >= 5.0 {
-            *b = !*b;
-        }
-    } else {
-        grading.gamma -= 1.0 * time.delta_seconds();
-        if grading.gamma <= 0.0 {
-            *b = !*b;
-        }
-    }
 }
 
 fn init_resources(
@@ -493,11 +470,19 @@ fn player_throw_weapon(
                         + camera_global_transform.forward() * PLAYER_THROW_OFFSET_SCALE,
                 )
                 .with_rotation(Quat::from_rotation_x(std::f32::consts::FRAC_PI_2)),
-                Collider::cuboid(0.6, 0.6, 0.3),
+                Collider::cuboid(0.6, 2.6, 0.3),
+                CollisionGroups::new(
+                    COLLISION_GROUP_PROJECTILES,
+                    COLLISION_GROUP_LEVEL | COLLISION_GROUP_PLAYER | COLLISION_GROUP_ENEMY,
+                ),
+                ActiveEvents::COLLISION_EVENTS,
                 RigidBody::Dynamic,
                 Velocity {
                     linvel: camera_global_transform.forward() * PLAYER_THROW_STRENGTH,
                     ..default()
+                },
+                Damage {
+                    damage: PLAYER_THROW_DAMAGE,
                 },
             ));
     }
