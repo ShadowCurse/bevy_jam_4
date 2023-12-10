@@ -2,7 +2,8 @@ use bevy::prelude::*;
 
 use crate::{
     damage::Health,
-    player::{Player, PlayerScore, PlayerWeapon},
+    level::LevelInfo,
+    player::{Player, PlayerWeapon},
     utils::remove_all_with,
     weapons::Ammo,
     UiState,
@@ -17,7 +18,7 @@ impl Plugin for StatsPlugin {
         app.add_systems(OnEnter(UiState::Stats), setup_stats_menu);
         app.add_systems(
             Update,
-            (update_plyaer_hp, update_player_ammo, update_plyaer_score)
+            (update_plyaer_hp, update_player_ammo, update_game_progress)
                 .run_if(in_state(UiState::Stats)),
         );
         app.add_systems(OnExit(UiState::Stats), remove_all_with::<StatsMenu>);
@@ -28,7 +29,7 @@ impl Plugin for StatsPlugin {
 struct StatsMenu;
 
 #[derive(Component)]
-struct StatsPlayerScore;
+struct StatsGameProgress;
 
 #[derive(Component)]
 struct StatsPlayerHp;
@@ -102,7 +103,7 @@ fn setup_stats_menu(mut commands: Commands, config: Res<UiConfig>) {
                 .with_children(|builder| {
                     // "Score" text
                     builder.spawn((TextBundle {
-                        text: Text::from_section("SCORE", config.stats_big_text_style.clone()),
+                        text: Text::from_section("PROGRESS", config.stats_big_text_style.clone()),
                         ..default()
                     }
                     .with_style(config.title_style.clone()),));
@@ -114,7 +115,7 @@ fn setup_stats_menu(mut commands: Commands, config: Res<UiConfig>) {
                             ..default()
                         }
                         .with_style(config.title_style.clone()),
-                        StatsPlayerScore,
+                        StatsGameProgress,
                     ));
                 });
         });
@@ -142,14 +143,10 @@ fn update_plyaer_hp(
     text.sections[0].value = format!("{}", hp.health);
 }
 
-fn update_plyaer_score(
-    player_score: Query<&PlayerScore>,
-    mut volume_text: Query<&mut Text, With<StatsPlayerScore>>,
+fn update_game_progress(
+    level_info: Res<LevelInfo>,
+    mut volume_text: Query<&mut Text, With<StatsGameProgress>>,
 ) {
-    let Ok(score) = player_score.get_single() else {
-        return;
-    };
-
     let mut text = volume_text.single_mut();
-    text.sections[0].value = format!("{}", score.score);
+    text.sections[0].value = format!("{}%", level_info.game_progress);
 }

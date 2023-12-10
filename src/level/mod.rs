@@ -232,11 +232,12 @@ enum LevelType {
 }
 
 #[derive(Resource)]
-struct LevelInfo {
-    finished: bool,
-    level_type: LevelType,
-    translation: Vec3,
-    old_level_objects: Vec<Entity>,
+pub struct LevelInfo {
+    pub finished: bool,
+    pub level_type: LevelType,
+    pub game_progress: i32,
+    pub translation: Vec3,
+    pub old_level_objects: Vec<Entity>,
 }
 
 #[derive(Event)]
@@ -344,8 +345,7 @@ fn init_resources(
     let door_mesh = meshes.add(shape::Box::new(COLUMN_SIZE, DOOR_THICKNESS, COLUMN_HIGHT).into());
     let door_material = materials.add(Color::DARK_GRAY.into());
 
-    let door_light_mesh =
-        meshes.add(shape::Box::new(2.5, 2.5, 1.0).into());
+    let door_light_mesh = meshes.add(shape::Box::new(2.5, 2.5, 1.0).into());
     let door_open_light_material = materials.add(StandardMaterial {
         base_color: Color::GREEN,
         emissive: Color::GREEN,
@@ -423,11 +423,13 @@ fn spawn_initial_level(
         None,
         LevelType::Covered,
         true,
+        false,
     );
 
     commands.insert_resource(LevelInfo {
         finished: false,
         level_type: LevelType::Covered,
+        game_progress: -10,
         translation: Vec3::ZERO,
         old_level_objects: vec![],
     });
@@ -435,17 +437,18 @@ fn spawn_initial_level(
 
 fn level_progress(
     enemies: Query<Entity, With<Enemy>>,
-    mut level_state: ResMut<LevelInfo>,
+    mut level_info: ResMut<LevelInfo>,
     mut level_started_events: EventReader<LevelStarted>,
     mut level_finished_events: EventWriter<LevelFinished>,
 ) {
     for _ in level_started_events.read() {
-        level_state.finished = false;
+        level_info.finished = false;
     }
 
     let remaining_enemies = enemies.iter().count();
-    if remaining_enemies == 0 && !level_state.finished {
-        level_state.finished = true;
+    if remaining_enemies == 0 && !level_info.finished {
+        level_info.finished = true;
+        level_info.game_progress += 10;
         level_finished_events.send(LevelFinished);
     }
 }
@@ -466,14 +469,20 @@ fn level_switch(
     for event in level_switch_events.read() {
         let old_level_objects = level_objects.iter().collect::<Vec<_>>();
 
-        let new_level_type = match level_info.level_type {
-            LevelType::Open(_) => LevelType::Covered,
-            LevelType::Covered => {
-                if rand::random::<bool>() {
-                    LevelType::Covered
-                } else {
-                    let level_color = rand::random::<LevelColor>();
-                    LevelType::Open(level_color)
+        let boss_level = level_info.game_progress == 100;
+
+        let new_level_type = if boss_level {
+            LevelType::Open(LevelColor::Normal)
+        } else {
+            match level_info.level_type {
+                LevelType::Open(_) => LevelType::Covered,
+                LevelType::Covered => {
+                    if rand::random::<bool>() {
+                        LevelType::Covered
+                    } else {
+                        let level_color = rand::random::<LevelColor>();
+                        LevelType::Open(level_color)
+                    }
                 }
             }
         };
@@ -500,6 +509,7 @@ fn level_switch(
             Some(event.exit_door),
             new_level_type,
             false,
+            boss_level,
         );
 
         level_info.level_type = new_level_type;

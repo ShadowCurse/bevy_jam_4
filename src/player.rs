@@ -78,11 +78,6 @@ pub struct Player {
 }
 
 #[derive(Component)]
-pub struct PlayerScore {
-    pub score: u32,
-}
-
-#[derive(Component)]
 pub struct PlayerVelocity {
     pub was_input: bool,
     pub velocity: Vec3,
@@ -152,7 +147,6 @@ pub fn spawn_player(
                 was_input: false,
                 velocity: Vec3::default(),
             },
-            PlayerScore { score: 0 },
             Health {
                 health: PLAYER_HEALTH,
             },
@@ -356,19 +350,17 @@ fn player_hud_animation(
 }
 
 fn player_kills_reading(
-    mut player: Query<(Entity, &mut PlayerScore), With<Player>>,
+    mut player: Query<Entity, With<Player>>,
     mut kill_events: EventReader<KillEvent>,
     mut global_state: ResMut<NextState<GlobalState>>,
 ) {
-    let Ok((player, mut player_score)) = player.get_single_mut() else {
+    let Ok(player) = player.get_single_mut() else {
         return;
     };
 
     for kill_event in kill_events.read() {
         if kill_event.entity == player {
             global_state.set(GlobalState::GameOver);
-        } else {
-            player_score.score += 10;
         }
     }
 }

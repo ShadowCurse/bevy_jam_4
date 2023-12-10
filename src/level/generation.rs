@@ -32,7 +32,141 @@ enum CellType {
 // ^ y
 // |
 // -->x
-fn generate_level(previus_door: Option<Door>) -> [[CellType; GRID_SIZE]; GRID_SIZE] {
+fn generate_boss_level(previus_door: Option<Door>) -> [[CellType; GRID_SIZE]; GRID_SIZE] {
+    let mut rng = rand::thread_rng();
+
+    // row order
+    let mut grid = [[CellType::Empty; GRID_SIZE]; GRID_SIZE];
+
+    // generate border
+    for x in 0..GRID_SIZE {
+        grid[0][x] = CellType::Column;
+    }
+    for x in 0..GRID_SIZE {
+        grid[GRID_SIZE - 1][x] = CellType::Column;
+    }
+    (0..GRID_SIZE).for_each(|y| {
+        grid[y][0] = CellType::Column;
+    });
+    (0..GRID_SIZE).for_each(|y| {
+        grid[y][GRID_SIZE - 1] = CellType::Column;
+    });
+
+    let door = previus_door.unwrap();
+    match door.door_type {
+        DoorType::Top => {
+            grid[GRID_SIZE - 1][door.grid_pos] = CellType::Door(Door {
+                door_type: DoorType::Bottom,
+                door_state: DoorState::TemporaryOpen,
+                grid_pos: door.grid_pos,
+            });
+        }
+        DoorType::Bottom => {
+            grid[0][door.grid_pos] = CellType::Door(Door {
+                door_type: DoorType::Top,
+                door_state: DoorState::TemporaryOpen,
+                grid_pos: door.grid_pos,
+            });
+        }
+        DoorType::Left => {
+            grid[door.grid_pos][GRID_SIZE - 1] = CellType::Door(Door {
+                door_type: DoorType::Right,
+                door_state: DoorState::TemporaryOpen,
+                grid_pos: door.grid_pos,
+            });
+        }
+        DoorType::Right => {
+            grid[door.grid_pos][0] = CellType::Door(Door {
+                door_type: DoorType::Left,
+                door_state: DoorState::TemporaryOpen,
+                grid_pos: door.grid_pos,
+            });
+        }
+    }
+
+    let middle = GRID_SIZE / 2;
+    // Big
+    grid[middle][middle] = CellType::Enemy(EnemyType::Big);
+
+    // Mid
+    for x in middle - 1..=middle + 1 {
+        grid[middle + 1][x] = CellType::Enemy(EnemyType::Mid);
+    }
+    for x in middle - 1..=middle + 1 {
+        grid[middle - 1][x] = CellType::Enemy(EnemyType::Mid);
+    }
+    for y in middle - 1..=middle + 1 {
+        grid[y][middle + 1] = CellType::Enemy(EnemyType::Mid);
+    }
+    for y in middle - 1..=middle + 1 {
+        grid[y][middle - 1] = CellType::Enemy(EnemyType::Mid);
+    }
+
+    // Small
+    for x in middle - 2..=middle + 2 {
+        grid[middle + 2][x] = CellType::Enemy(EnemyType::Small);
+    }
+    for x in middle - 2..=middle + 2 {
+        grid[middle - 2][x] = CellType::Enemy(EnemyType::Small);
+    }
+    for y in middle - 2..=middle + 2 {
+        grid[y][middle + 2] = CellType::Enemy(EnemyType::Small);
+    }
+    for y in middle - 2..=middle + 2 {
+        grid[y][middle - 2] = CellType::Enemy(EnemyType::Small);
+    }
+
+    // Top right corner
+    grid[4][GRID_SIZE - 6] = CellType::Column;
+    grid[5][GRID_SIZE - 5] = CellType::Column;
+    grid[6][GRID_SIZE - 4] = CellType::Column;
+
+    grid[4][GRID_SIZE - 5] = CellType::Weapon(WeaponType::Shotgun);
+    grid[5][GRID_SIZE - 4] = CellType::Weapon(WeaponType::Shotgun);
+
+    // Botton left corner
+    grid[GRID_SIZE - 4][6] = CellType::Column;
+    grid[GRID_SIZE - 5][5] = CellType::Column;
+    grid[GRID_SIZE - 6][4] = CellType::Column;
+
+    grid[GRID_SIZE - 4][5] = CellType::Weapon(WeaponType::Shotgun);
+    grid[GRID_SIZE - 5][4] = CellType::Weapon(WeaponType::Shotgun);
+
+    // Top left corner
+    grid[4][4] = CellType::Column;
+
+    grid[4][5] = CellType::Column;
+    grid[4][6] = CellType::Column;
+    grid[4][7] = CellType::Column;
+
+    grid[5][4] = CellType::Column;
+    grid[6][4] = CellType::Column;
+    grid[7][4] = CellType::Column;
+
+    grid[3][5] = CellType::Weapon(WeaponType::Minigun);
+    grid[5][3] = CellType::Weapon(WeaponType::Minigun);
+
+    // Bottom right corner
+    grid[GRID_SIZE - 4][GRID_SIZE - 4] = CellType::Column;
+
+    grid[GRID_SIZE - 4][GRID_SIZE - 5] = CellType::Column;
+    grid[GRID_SIZE - 4][GRID_SIZE - 6] = CellType::Column;
+    grid[GRID_SIZE - 4][GRID_SIZE - 7] = CellType::Column;
+
+    grid[GRID_SIZE - 5][GRID_SIZE - 4] = CellType::Column;
+    grid[GRID_SIZE - 6][GRID_SIZE - 4] = CellType::Column;
+    grid[GRID_SIZE - 7][GRID_SIZE - 4] = CellType::Column;
+
+    grid[GRID_SIZE - 3][GRID_SIZE - 5] = CellType::Weapon(WeaponType::Minigun);
+    grid[GRID_SIZE - 5][GRID_SIZE - 3] = CellType::Weapon(WeaponType::Minigun);
+
+    grid
+}
+
+// ^ y
+// |
+// -->x
+fn generate_normal_level(previus_door: Option<Door>) -> [[CellType; GRID_SIZE]; GRID_SIZE] {
     let mut rng = rand::thread_rng();
 
     // row order
@@ -249,8 +383,13 @@ pub fn spawn_level(
     previus_door: Option<Door>,
     level_type: LevelType,
     tutorial_level: bool,
+    boss_level: bool,
 ) -> Vec3 {
-    let mut grid = generate_level(previus_door);
+    let mut grid = if boss_level {
+        generate_boss_level(previus_door)
+    } else {
+        generate_normal_level(previus_door)
+    };
 
     if tutorial_level {
         let mut player_pos = (0, 0);
