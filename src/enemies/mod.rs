@@ -91,7 +91,7 @@ const ENEMY_BIG_DEATH_GAP_DELTA_Y: f32 = ENEMY_BIG_DEATH_GAP_Y / ENEMY_BIG_PARTS
 const ENEMY_BIG_DEATH_GAP_DELTA_Z: f32 = ENEMY_BIG_DEATH_GAP_Z / ENEMY_BIG_PARTS_Z as f32;
 const ENEMY_BIG_DEATH_PULSE_STENGTH: f32 = 1.8;
 
-const ENEMY_BIG_HEALTH: i32 = 10;
+const ENEMY_BIG_HEALTH: i32 = 500;
 const ENEMY_BIG_SPEED: f32 = 3.0;
 const ENEMY_BIG_ROTATION_SPEED: f32 = 0.5;
 const ENEMY_BIG_MIN_DISTANCE: f32 = 200.0;
@@ -312,18 +312,44 @@ pub fn spawn_enemy(
     };
 
     let weapon_transform = Transform::from_translation(weapon_offset);
-    let weapon = commands
-        .spawn((WeaponBundle::pistol(weapon_transform), EnemyWeapon))
-        .with_children(|builder| {
-            builder.spawn((
-                SceneBundle {
-                    scene: weapons_assets.pistol_scene.clone(),
-                    ..default()
-                },
-                WeaponModel,
-            ));
-        })
-        .id();
+    let weapon = match enemy_type {
+        EnemyType::Small => commands
+            .spawn((WeaponBundle::pistol(weapon_transform), EnemyWeapon))
+            .with_children(|builder| {
+                builder.spawn((
+                    SceneBundle {
+                        scene: weapons_assets.pistol_scene.clone(),
+                        ..default()
+                    },
+                    WeaponModel,
+                ));
+            })
+            .id(),
+        EnemyType::Mid => commands
+            .spawn((WeaponBundle::shotgun(weapon_transform), EnemyWeapon))
+            .with_children(|builder| {
+                builder.spawn((
+                    SceneBundle {
+                        scene: weapons_assets.shotgun_scene.clone(),
+                        ..default()
+                    },
+                    WeaponModel,
+                ));
+            })
+            .id(),
+        EnemyType::Big => commands
+            .spawn((WeaponBundle::minigun(weapon_transform), EnemyWeapon))
+            .with_children(|builder| {
+                builder.spawn((
+                    SceneBundle {
+                        scene: weapons_assets.minigun_scene.clone(),
+                        ..default()
+                    },
+                    WeaponModel,
+                ));
+            })
+            .id(),
+    };
 
     enemy.attached_weapon = Some(weapon);
     commands
