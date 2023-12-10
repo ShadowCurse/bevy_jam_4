@@ -474,7 +474,7 @@ fn player_shoot(
     keys: Res<Input<KeyCode>>,
     player_camera: Query<&GlobalTransform, With<PlayerCamera>>,
     mut player_weapon_components: Query<
-        (Entity, &GlobalTransform, &WeaponAttackTimer, &mut Ammo),
+        (Entity, &GlobalTransform, &mut WeaponAttackTimer, &mut Ammo),
         With<PlayerWeapon>,
     >,
     mut shoot_event: EventWriter<ShootEvent>,
@@ -483,14 +483,16 @@ fn player_shoot(
         return;
     };
 
-    let Ok((weapon_entity, weapon_global_transform, weapon_attack_timer, mut ammo)) =
+    let Ok((weapon_entity, weapon_global_transform, mut weapon_attack_timer, mut ammo)) =
         player_weapon_components.get_single_mut()
     else {
         return;
     };
 
-    if keys.pressed(KeyCode::Space) && weapon_attack_timer.attack_timer.finished() && ammo.ammo != 0
+    if keys.pressed(KeyCode::Space) && weapon_attack_timer.ready && ammo.ammo != 0
     {
+        weapon_attack_timer.attack_timer.reset();
+        weapon_attack_timer.ready = false;
         ammo.ammo -= 1;
         shoot_event.send(ShootEvent {
             weapon_entity,

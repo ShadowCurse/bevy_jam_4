@@ -420,14 +420,16 @@ fn enemy_move(
 fn enemy_shoot(
     rapier_context: Res<RapierContext>,
     player: Query<Entity, With<Player>>,
-    enemy_weapons: Query<(Entity, &GlobalTransform, &WeaponAttackTimer), With<EnemyWeapon>>,
+    mut enemy_weapons: Query<(Entity, &GlobalTransform, &mut WeaponAttackTimer), With<EnemyWeapon>>,
     mut shoot_event: EventWriter<ShootEvent>,
 ) {
     let Ok(player) = player.get_single() else {
         return;
     };
 
-    for (weapon_entity, weapon_global_transform, weapon_attack_timer) in enemy_weapons.iter() {
+    for (weapon_entity, weapon_global_transform, mut weapon_attack_timer) in
+        enemy_weapons.iter_mut()
+    {
         let ray_dir = weapon_global_transform.up();
         let ray_origin = weapon_global_transform.translation();
         let max_toi = 300.0;
@@ -439,7 +441,9 @@ fn enemy_shoot(
         if let Some((entity, _)) =
             rapier_context.cast_ray(ray_origin, ray_dir, max_toi, solid, filter)
         {
-            if entity == player && weapon_attack_timer.attack_timer.finished() {
+            if entity == player && weapon_attack_timer.ready {
+                weapon_attack_timer.attack_timer.reset();
+                weapon_attack_timer.ready = false;
                 shoot_event.send(ShootEvent {
                     weapon_entity,
                     weapon_translation: weapon_global_transform.translation(),

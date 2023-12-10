@@ -7,7 +7,7 @@ use crate::{
     COLLISION_GROUP_PICKUP, COLLISION_GROUP_PLAYER, COLLISION_GROUP_PROJECTILES,
 };
 
-const DEFAULT_PROJECTILE_SIZE: f32 = 0.125;
+const DEFAULT_PROJECTILE_SIZE: f32 = 0.25; //0.125;
 const DEFAULT_CLIP_SIZE: f32 = 0.01;
 const DEFAULT_CLIP_LENGTH: f32 = 0.02;
 
@@ -36,7 +36,7 @@ const PISTOL_SHELL_INITIAL_VELOCITY: f32 = 10.0;
 // Shotgun
 const SHOTGUN_AMMO: u32 = 10;
 const SHOTGUN_DAMAGE: i32 = 5;
-const SHOTGUN_ATTACK_SPEED: f32 = 1.0 / 2.0;
+const SHOTGUN_ATTACK_SPEED: f32 = 1.0 / 1.2;
 const SHOTGUN_PROJECTILE_VELOCITY: f32 = 500.0;
 const SHOTGUN_PROJECTILE_OFFSET_SCALE: f32 = 2.2;
 
@@ -158,6 +158,7 @@ pub struct ShootEvent {
 #[derive(Component)]
 pub struct WeaponAttackTimer {
     pub attack_timer: Timer,
+    pub ready: bool,
 }
 
 #[derive(Component)]
@@ -325,6 +326,7 @@ impl WeaponAttackTimer {
                 std::time::Duration::from_secs_f32(seconds),
                 TimerMode::Repeating,
             ),
+            ready: false,
         }
     }
 }
@@ -341,7 +343,7 @@ fn init_resources(
         }
         .into(),
     );
-    let projectile_material = materials.add(Color::GOLD.into());
+    let projectile_material = materials.add(Color::ORANGE_RED.into());
 
     commands.insert_resource(WeaponsResources {
         projectile_mesh,
@@ -410,7 +412,12 @@ pub fn spawn_weapon(
 
 fn update_attack_timers(time: Res<Time>, mut timers: Query<&mut WeaponAttackTimer>) {
     for mut timer in timers.iter_mut() {
-        timer.attack_timer.tick(time.delta());
+        if !timer.ready {
+            timer.attack_timer.tick(time.delta());
+            if timer.attack_timer.finished() {
+                timer.ready = true;
+            }
+        }
     }
 }
 
@@ -674,12 +681,14 @@ fn weapon_shoot(
 
             // spawn shell
             let shell_direction = right + Vec3::Z;
+            let mut shell_translation = e.weapon_translation;
+            shell_translation += e.direction * 2.0;
             match weapon.weapon_type {
                 WeaponType::Pistol => {
                     commands.spawn(ShellBundle {
                         scene_bundle: SceneBundle {
                             scene: shell_scene,
-                            transform: Transform::from_translation(e.weapon_translation)
+                            transform: Transform::from_translation(shell_translation)
                                 .with_scale(Vec3::new(2.0, 2.0, 2.0)),
                             ..default()
                         },
@@ -694,10 +703,8 @@ fn weapon_shoot(
                     commands.spawn(ShellBundle {
                         scene_bundle: SceneBundle {
                             scene: shell_scene.clone(),
-                            transform: Transform::from_translation(
-                                e.weapon_translation - right / 2.0,
-                            )
-                            .with_scale(Vec3::new(2.0, 2.0, 2.0)),
+                            transform: Transform::from_translation(shell_translation - right / 2.0)
+                                .with_scale(Vec3::new(2.0, 2.0, 2.0)),
                             ..default()
                         },
                         velocity: Velocity {
@@ -709,10 +716,8 @@ fn weapon_shoot(
                     commands.spawn(ShellBundle {
                         scene_bundle: SceneBundle {
                             scene: shell_scene,
-                            transform: Transform::from_translation(
-                                e.weapon_translation - right / 2.0,
-                            )
-                            .with_scale(Vec3::new(2.0, 2.0, 2.0)),
+                            transform: Transform::from_translation(shell_translation - right / 2.0)
+                                .with_scale(Vec3::new(2.0, 2.0, 2.0)),
                             ..default()
                         },
                         velocity: Velocity {
