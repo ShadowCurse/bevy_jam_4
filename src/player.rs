@@ -122,8 +122,9 @@ pub fn spawn_player(
     player_resources: &PlayerResources,
     skybox_image: Handle<Image>,
     commands: &mut Commands,
-    transform: Transform,
+    mut transform: Transform,
 ) {
+    transform.translation.z -= 0.5;
     let id = commands
         .spawn((
             TransformBundle::from_transform(transform),
