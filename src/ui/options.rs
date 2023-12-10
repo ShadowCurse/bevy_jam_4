@@ -173,10 +173,10 @@ fn button_system(
                         }
                     }
                     OptionMenuButton::SenseUp => {
-                        game_settings.camera_sensitivity += 0.5;
+                        game_settings.camera_sensitivity += 0.1;
                     }
                     OptionMenuButton::SenseDown => {
-                        game_settings.camera_sensitivity -= 0.5;
+                        game_settings.camera_sensitivity -= 0.1;
                         if game_settings.camera_sensitivity <= 0.0 {
                             game_settings.camera_sensitivity = 0.0;
                         }
