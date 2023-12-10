@@ -2,7 +2,9 @@ use bevy::{core_pipeline::clear_color::ClearColorConfig, prelude::*};
 
 use crate::{
     damage::DamageEvent,
+    level::{LevelInfo, LevelStarted},
     player::{Player, PlayerCamera},
+    ui::UiAssets,
     GlobalState,
 };
 
@@ -16,6 +18,12 @@ const DAMAGE_NUM_OFFSET: u32 = 10;
 const DAMAGE_NUM: u32 = 20;
 const DAMAGE_DISTANCE: f32 = 2.0;
 const DAMAGE_DISPAWN_TIME_SECONDS: f32 = 1.0;
+
+const TUTORIAL_TEXT: &str =
+    "WASD - Move\nSPACE - Shoot\nF - throw a weapon\n(Throwing weapons also deal damage)";
+const TUTORIAL_TEXT_DISPAWN_TIME_SECONDS: f32 = 5.0;
+const BOSS_TEXT: &str = "THE RED DRAGON LAIR";
+const BOSS_TEXT_DISPAWN_TIME_SECONDS: f32 = 2.0;
 
 pub struct HudPlugin;
 
@@ -34,7 +42,7 @@ impl Plugin for HudPlugin {
                 from: GlobalState::MainMenu,
                 to: GlobalState::InGame,
             },
-            (enable_hud, despawn_all_damage_points),
+            (enable_hud, despawn_all_timed_elements, show_tutorial_text).chain(),
         );
 
         app.add_systems(
@@ -58,7 +66,7 @@ impl Plugin for HudPlugin {
                 from: GlobalState::InGame,
                 to: GlobalState::GameOver,
             },
-            (disable_hud, despawn_all_damage_points),
+            (disable_hud, despawn_all_timed_elements),
         );
 
         app.add_systems(
@@ -66,7 +74,7 @@ impl Plugin for HudPlugin {
                 from: GlobalState::GameOver,
                 to: GlobalState::InGame,
             },
-            (enable_hud, despawn_all_damage_points),
+            (enable_hud, despawn_all_timed_elements),
         );
 
         app.add_systems(
@@ -74,12 +82,17 @@ impl Plugin for HudPlugin {
                 from: GlobalState::InGame,
                 to: GlobalState::GameWon,
             },
-            (disable_hud, despawn_all_damage_points),
+            (disable_hud, despawn_all_timed_elements),
         );
 
         app.add_systems(
             Update,
-            (display_incomming_damage, despawn_damage_points).run_if(in_state(GlobalState::InGame)),
+            (
+                display_incomming_damage,
+                progress_timed_elements,
+                show_boss_text,
+            )
+                .run_if(in_state(GlobalState::InGame)),
         );
     }
 }
@@ -88,11 +101,18 @@ impl Plugin for HudPlugin {
 struct HudCamera;
 
 #[derive(Component)]
-struct HudDamagePoint {
+struct HudTimedElement {
     spawn_time: f32,
+    lifespawn: f32,
 }
 
-fn init_hud(mut commands: Commands) {
+#[derive(Resource)]
+struct HudResources {
+    text_style: TextStyle,
+    boss_text_style: TextStyle,
+}
+
+fn init_hud(ui_assets: Res<UiAssets>, mut commands: Commands) {
     commands.spawn((
         Camera2dBundle {
             camera: Camera {
@@ -157,6 +177,19 @@ fn init_hud(mut commands: Commands) {
             .with_rotation(Quat::from_rotation_z(CROSSHAIR_ROTATION)),
         ..default()
     });
+
+    commands.insert_resource(HudResources {
+        text_style: TextStyle {
+            font: ui_assets.font.clone(),
+            font_size: 60.0,
+            color: Color::WHITE,
+        },
+        boss_text_style: TextStyle {
+            font: ui_assets.font.clone(),
+            font_size: 80.0,
+            color: Color::ORANGE_RED,
+        },
+    })
 }
 
 fn disable_hud(mut hud_camera: Query<&mut Camera, With<HudCamera>>) {
@@ -173,6 +206,44 @@ fn enable_hud(mut hud_camera: Query<&mut Camera, With<HudCamera>>) {
     };
 
     camera.is_active = true;
+}
+
+fn show_tutorial_text(time: Res<Time>, hud_resources: Res<HudResources>, mut commands: Commands) {
+    commands.spawn((
+        Text2dBundle {
+            text: Text::from_section(TUTORIAL_TEXT, hud_resources.text_style.clone())
+                .with_alignment(TextAlignment::Center),
+            ..default()
+        },
+        HudTimedElement {
+            spawn_time: time.elapsed_seconds(),
+            lifespawn: TUTORIAL_TEXT_DISPAWN_TIME_SECONDS,
+        },
+    ));
+}
+
+fn show_boss_text(
+    time: Res<Time>,
+    hud_resources: Res<HudResources>,
+    level_info: Res<LevelInfo>,
+    mut commands: Commands,
+    mut level_started_events: EventReader<LevelStarted>,
+) {
+    for _ in level_started_events.read() {
+        if level_info.game_progress == 100 {
+            commands.spawn((
+                Text2dBundle {
+                    text: Text::from_section(BOSS_TEXT, hud_resources.boss_text_style.clone())
+                        .with_alignment(TextAlignment::Center),
+                    ..default()
+                },
+                HudTimedElement {
+                    spawn_time: time.elapsed_seconds(),
+                    lifespawn: BOSS_TEXT_DISPAWN_TIME_SECONDS,
+                },
+            ));
+        }
+    }
 }
 
 fn display_incomming_damage(
@@ -203,8 +274,9 @@ fn display_incomming_damage(
             .spawn((
                 TransformBundle::default(),
                 InheritedVisibility::VISIBLE,
-                HudDamagePoint {
+                HudTimedElement {
                     spawn_time: time.elapsed_seconds(),
+                    lifespawn: DAMAGE_DISPAWN_TIME_SECONDS,
                 },
             ))
             .with_children(|builder| {
@@ -225,13 +297,13 @@ fn display_incomming_damage(
     }
 }
 
-fn despawn_damage_points(
+fn progress_timed_elements(
     time: Res<Time>,
-    points: Query<(Entity, &HudDamagePoint)>,
+    points: Query<(Entity, &HudTimedElement)>,
     mut commands: Commands,
 ) {
     for (point_entity, point) in points.iter() {
-        if point.spawn_time + DAMAGE_DISPAWN_TIME_SECONDS < time.elapsed_seconds() {
+        if point.spawn_time + point.lifespawn < time.elapsed_seconds() {
             let Some(e) = commands.get_entity(point_entity) else {
                 continue;
             };
@@ -240,7 +312,10 @@ fn despawn_damage_points(
     }
 }
 
-fn despawn_all_damage_points(points: Query<Entity, With<HudDamagePoint>>, mut commands: Commands) {
+fn despawn_all_timed_elements(
+    points: Query<Entity, With<HudTimedElement>>,
+    mut commands: Commands,
+) {
     for point_entity in points.iter() {
         let Some(e) = commands.get_entity(point_entity) else {
             continue;

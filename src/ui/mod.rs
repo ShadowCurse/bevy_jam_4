@@ -132,7 +132,7 @@ impl Plugin for UiPlugin {
 #[derive(AssetCollection, Resource)]
 pub struct UiAssets {
     #[asset(path = "fonts/monaco.ttf")]
-    font: Handle<Font>,
+    pub font: Handle<Font>,
 }
 
 #[derive(Debug, Clone, Resource)]
