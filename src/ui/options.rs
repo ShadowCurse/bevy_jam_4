@@ -1,4 +1,5 @@
 use bevy::{prelude::*, window::WindowMode};
+use bevy_kira_audio::{Audio, AudioControl};
 
 use crate::{utils::remove_all_with, GameSettings, GlobalState, UiState};
 
@@ -134,6 +135,7 @@ fn setup_option_menu(mut commands: Commands, config: Res<UiConfig>) {
 
 #[allow(clippy::complexity)]
 fn button_system(
+    audio: Res<Audio>,
     config: Res<UiConfig>,
     interaction_query: Query<
         (&OptionMenuButton, &Interaction, &Children),
@@ -165,12 +167,14 @@ fn button_system(
                     }
                     OptionMenuButton::VolumeUp => {
                         game_settings.volume += 0.05;
+                        audio.set_volume(game_settings.volume as f64);
                     }
                     OptionMenuButton::VolumeDown => {
                         game_settings.volume -= 0.05;
                         if game_settings.volume <= 0.0 {
                             game_settings.volume = 0.0;
                         }
+                        audio.set_volume(game_settings.volume as f64);
                     }
                     OptionMenuButton::SenseUp => {
                         game_settings.camera_sensitivity += 0.1;

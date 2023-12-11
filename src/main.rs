@@ -4,7 +4,7 @@ use bevy::{
     window::{WindowMode, WindowResolution},
 };
 use bevy_asset_loader::prelude::*;
-use bevy_kira_audio::AudioPlugin;
+use bevy_kira_audio::{Audio, AudioControl, AudioPlugin};
 use bevy_rapier3d::prelude::*;
 
 mod damage;
@@ -74,12 +74,11 @@ fn main() {
 
     app.insert_resource(GameSettings {
         window_mode: WindowMode::Windowed,
-        camera_sensitivity: 1.0,
-
         volume: 0.5,
-        current_volume: 0.0,
-        volume_change_timer: Timer::new(std::time::Duration::from_millis(50), TimerMode::Repeating),
+        camera_sensitivity: 1.0,
     });
+
+    app.add_systems(Startup, setup_audio_volume);
 
     app.run();
 }
@@ -147,9 +146,10 @@ impl_into_state!(UiState);
 #[derive(Resource)]
 struct GameSettings {
     window_mode: WindowMode,
-    camera_sensitivity: f32,
-
     volume: f32,
-    current_volume: f32,
-    volume_change_timer: Timer,
+    camera_sensitivity: f32,
+}
+
+fn setup_audio_volume(audio: Res<Audio>) {
+    audio.set_volume(0.5);
 }

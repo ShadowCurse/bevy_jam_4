@@ -115,7 +115,13 @@ impl Plugin for LevelPlugin {
                 from: GlobalState::Paused,
                 to: GlobalState::MainMenu,
             },
-            (remove_all_with::<LevelObject>, remove_all_with::<Player>),
+            (
+                remove_all_with::<LevelObject>,
+                remove_all_with::<Player>,
+                resume_music,
+                stop_music,
+            )
+                .chain(),
         );
 
         app.add_systems(
@@ -167,7 +173,6 @@ impl Plugin for LevelPlugin {
         app.add_systems(
             Update,
             (
-                animate_volume_change,
                 level_progress,
                 level_switch,
                 level_delete_old,
@@ -456,24 +461,6 @@ fn pause_music(audio: Res<Audio>) {
 
 fn stop_music(audio: Res<Audio>) {
     audio.stop();
-}
-
-fn animate_volume_change(
-    time: Res<Time>,
-    audio: Res<Audio>,
-    mut game_settings: ResMut<GameSettings>,
-) {
-    game_settings.volume_change_timer.tick(time.delta());
-    if game_settings.volume_change_timer.finished()
-        && game_settings.current_volume != game_settings.volume
-    {
-        if game_settings.current_volume < game_settings.volume {
-            game_settings.current_volume += 0.01;
-        } else {
-            game_settings.current_volume -= 0.01;
-        }
-        audio.set_volume(game_settings.current_volume as f64);
-    }
 }
 
 fn spawn_initial_level(
