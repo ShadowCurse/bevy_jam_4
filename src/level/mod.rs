@@ -540,6 +540,7 @@ fn level_switch(
         let old_level_objects = level_objects.iter().collect::<Vec<_>>();
 
         let boss_level = level_info.game_progress == 100;
+        let pre_boss_level = level_info.game_progress == 90;
         if boss_level {
             audio.stop();
             audio.play(level_assets.dragon_lair.clone());
@@ -547,11 +548,13 @@ fn level_switch(
 
         let new_level_type = if boss_level {
             LevelType::Open(LevelColor::Normal)
+        } else if pre_boss_level {
+            LevelType::Covered
         } else {
             match level_info.level_type {
                 LevelType::Open(_) => LevelType::Covered,
                 LevelType::Covered => {
-                    if rand::random::<bool>() {
+                    if rand::thread_rng().gen_ratio(1, 3) {
                         LevelType::Covered
                     } else {
                         let level_color = rand::random::<LevelColor>();
