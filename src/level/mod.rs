@@ -442,10 +442,7 @@ fn resume_physics(mut physics: ResMut<RapierConfiguration>) {
     physics.physics_pipeline_active = true;
 }
 
-fn start_in_game_music(
-    audio: Res<Audio>,
-    level_assets: Res<LevelAssets>,
-) {
+fn start_in_game_music(audio: Res<Audio>, level_assets: Res<LevelAssets>) {
     audio.play(level_assets.in_game.clone());
 }
 
