@@ -455,7 +455,7 @@ fn player_throw_weapon(
                 Collider::cuboid(0.6, 2.6, 0.3),
                 CollisionGroups::new(
                     COLLISION_GROUP_PROJECTILES,
-                    COLLISION_GROUP_LEVEL | COLLISION_GROUP_PLAYER | COLLISION_GROUP_ENEMY,
+                    COLLISION_GROUP_LEVEL | COLLISION_GROUP_ENEMY,
                 ),
                 ActiveEvents::COLLISION_EVENTS,
                 RigidBody::Dynamic,
@@ -489,8 +489,7 @@ fn player_shoot(
         return;
     };
 
-    if keys.pressed(KeyCode::Space) && weapon_attack_timer.ready && ammo.ammo != 0
-    {
+    if keys.pressed(KeyCode::Space) && weapon_attack_timer.ready && ammo.ammo != 0 {
         weapon_attack_timer.attack_timer.reset();
         weapon_attack_timer.ready = false;
         ammo.ammo -= 1;
