@@ -246,7 +246,7 @@ fn init_resources(
 
     let hud_tablet_arm_mesh = meshes.add(shape::Box::new(0.2, 1.0, 0.1).into());
     let hud_tablet_arm_material = materials.add(StandardMaterial {
-        base_color: Color::YELLOW_GREEN,
+        base_color: Color::GOLD,
         perceptual_roughness: 0.9,
         ..default()
     });

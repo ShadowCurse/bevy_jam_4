@@ -74,7 +74,7 @@ fn main() {
 
     app.insert_resource(GameSettings {
         window_mode: WindowMode::Windowed,
-        camera_sensitivity: 3.0,
+        camera_sensitivity: 1.0,
 
         volume: 0.5,
         current_volume: 0.0,
