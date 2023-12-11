@@ -173,6 +173,7 @@ impl Plugin for LevelPlugin {
         app.add_systems(
             Update,
             (
+                continues_music,
                 level_progress,
                 level_switch,
                 level_delete_old,
@@ -461,6 +462,16 @@ fn pause_music(audio: Res<Audio>) {
 
 fn stop_music(audio: Res<Audio>) {
     audio.stop();
+}
+
+fn continues_music(audio: Res<Audio>, level_assets: Res<LevelAssets>, level_info: Res<LevelInfo>) {
+    if !audio.is_playing_sound() {
+        if level_info.game_progress < 100 {
+            audio.play(level_assets.in_game.clone());
+        } else {
+            audio.play(level_assets.in_game.clone());
+        }
+    }
 }
 
 fn spawn_initial_level(
