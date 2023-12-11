@@ -436,7 +436,7 @@ fn player_throw_weapon(
         return;
     };
 
-    if keys.pressed(KeyCode::F) {
+    if keys.just_pressed(KeyCode::F) {
         commands
             .get_entity(camera)
             .unwrap()
