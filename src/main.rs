@@ -4,6 +4,7 @@ use bevy::{
     window::{WindowMode, WindowResolution},
 };
 use bevy_asset_loader::prelude::*;
+use bevy_kira_audio::AudioPlugin;
 use bevy_rapier3d::prelude::*;
 
 mod damage;
@@ -39,18 +40,18 @@ fn main() {
     app.insert_resource(AssetMetaCheck::Never);
 
     app.add_plugins((
-        DefaultPlugins
-            .set(WindowPlugin {
-                primary_window: Some(Window {
-                    title: GAME_NAME.to_string(),
-                    mode: WindowMode::Windowed,
-                    resolution: WindowResolution::new(1280.0, 720.0),
-                    ..default()
-                }),
+        DefaultPlugins.set(WindowPlugin {
+            primary_window: Some(Window {
+                title: GAME_NAME.to_string(),
+                mode: WindowMode::Windowed,
+                resolution: WindowResolution::new(1280.0, 720.0),
                 ..default()
             }),
+            ..default()
+        }),
         RapierPhysicsPlugin::<NoUserData>::default(),
         // RapierDebugRenderPlugin::default(),
+        AudioPlugin,
         damage::DamagePlugin,
         enemies::EnemiesPlugin,
         hud::HudPlugin,

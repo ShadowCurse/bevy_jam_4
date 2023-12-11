@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use bevy_asset_loader::prelude::*;
+use bevy_kira_audio::{Audio, AudioControl, AudioSource};
 use bevy_rapier3d::prelude::*;
 
 use crate::{
@@ -94,14 +95,22 @@ pub struct WeaponAssets {
     pub pistol_scene: Handle<Scene>,
     #[asset(path = "pistol/pistol_shell.glb#Scene0")]
     pub pistol_shell_scene: Handle<Scene>,
+    #[asset(path = "pistol/pistol.wav")]
+    pub pistol_sound: Handle<AudioSource>,
+
     #[asset(path = "shotgun/shotgun.glb#Scene0")]
     pub shotgun_scene: Handle<Scene>,
     #[asset(path = "shotgun/shotgun_shell.glb#Scene0")]
     pub shotgun_shell_scene: Handle<Scene>,
+    #[asset(path = "shotgun/shotgun.wav")]
+    pub shotgun_sound: Handle<AudioSource>,
+
     #[asset(path = "minigun/minigun.glb#Scene0")]
     pub minigun_scene: Handle<Scene>,
     #[asset(path = "minigun/minigun_shell.glb#Scene0")]
     pub minigun_shell_scene: Handle<Scene>,
+    #[asset(path = "minigun/minigun.wav")]
+    pub minigun_sound: Handle<AudioSource>,
 
     #[asset(path = "round.glb#Scene0")]
     pub round_scene: Handle<Scene>,
@@ -454,9 +463,10 @@ fn weapon_animation(
 }
 
 fn weapon_shoot(
+    audio: Res<Audio>,
+    weapon_assets: Res<WeaponAssets>,
     weapons: Query<(&Weapon, &Children)>,
     weapon_models: Query<&Transform, With<WeaponModel>>,
-    weapon_assets: Res<WeaponAssets>,
     mut commands: Commands,
     mut shoot_event: EventReader<ShootEvent>,
 ) {
@@ -724,6 +734,19 @@ fn weapon_shoot(
                 initial_transform,
                 target_transform,
             });
+
+            // play sound
+            match weapon.weapon_type {
+                WeaponType::Pistol => {
+                    audio.play(weapon_assets.pistol_sound.clone());
+                }
+                WeaponType::Shotgun => {
+                    audio.play(weapon_assets.shotgun_sound.clone());
+                }
+                WeaponType::Minigun => {
+                    audio.play(weapon_assets.minigun_sound.clone());
+                }
+            }
         }
     }
 }
