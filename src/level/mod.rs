@@ -4,6 +4,7 @@ use bevy::{
     render::render_resource::{TextureViewDescriptor, TextureViewDimension},
 };
 use bevy_asset_loader::prelude::*;
+use bevy_kira_audio::{Audio, AudioControl, AudioSource};
 use bevy_rapier3d::{prelude::*, rapier::geometry::CollisionEventFlags};
 use rand::{
     distributions::{Distribution, Standard},
@@ -16,8 +17,8 @@ use crate::{
     ui::UiResources,
     utils::remove_all_with,
     weapons::{Projectile, WeaponAssets},
-    GlobalState, COLLISION_GROUP_ENEMY, COLLISION_GROUP_LEVEL, COLLISION_GROUP_PLAYER,
-    COLLISION_GROUP_PROJECTILES,
+    GameSettings, GlobalState, COLLISION_GROUP_ENEMY, COLLISION_GROUP_LEVEL,
+    COLLISION_GROUP_PLAYER, COLLISION_GROUP_PROJECTILES,
 };
 
 use self::{
@@ -81,17 +82,25 @@ impl Plugin for LevelPlugin {
 
         app.add_systems(
             OnTransition {
+                from: GlobalState::MainMenu,
+                to: GlobalState::InGame,
+            },
+            start_in_game_music,
+        );
+
+        app.add_systems(
+            OnTransition {
                 from: GlobalState::InGame,
                 to: GlobalState::Paused,
             },
-            stop_physics,
+            (stop_physics, pause_music),
         );
         app.add_systems(
             OnTransition {
                 from: GlobalState::InGame,
                 to: GlobalState::GameOver,
             },
-            stop_physics,
+            (stop_physics, stop_music),
         );
 
         app.add_systems(
@@ -99,7 +108,7 @@ impl Plugin for LevelPlugin {
                 from: GlobalState::Paused,
                 to: GlobalState::InGame,
             },
-            resume_physics,
+            (resume_physics, resume_music),
         );
         app.add_systems(
             OnTransition {
@@ -107,6 +116,14 @@ impl Plugin for LevelPlugin {
                 to: GlobalState::MainMenu,
             },
             (remove_all_with::<LevelObject>, remove_all_with::<Player>),
+        );
+
+        app.add_systems(
+            OnTransition {
+                from: GlobalState::InGame,
+                to: GlobalState::GameOver,
+            },
+            stop_music,
         );
 
         app.add_systems(
@@ -122,6 +139,7 @@ impl Plugin for LevelPlugin {
                 to: GlobalState::InGame,
             },
             (
+                start_in_game_music,
                 resume_physics,
                 remove_all_with::<LevelObject>,
                 remove_all_with::<Player>,
@@ -135,7 +153,7 @@ impl Plugin for LevelPlugin {
                 from: GlobalState::InGame,
                 to: GlobalState::GameWon,
             },
-            stop_physics,
+            (stop_physics, stop_music),
         );
 
         app.add_systems(
@@ -149,6 +167,7 @@ impl Plugin for LevelPlugin {
         app.add_systems(
             Update,
             (
+                animate_volume_change,
                 level_progress,
                 level_switch,
                 level_delete_old,
@@ -171,6 +190,11 @@ pub struct LevelAssets {
     pub normal_skybox: Handle<Image>,
     #[asset(path = "skyboxes/green_skybox.png")]
     pub green_skybox: Handle<Image>,
+
+    #[asset(path = "in_game.wav")]
+    pub in_game: Handle<AudioSource>,
+    #[asset(path = "dragon_lair.wav")]
+    pub dragon_lair: Handle<AudioSource>,
 }
 
 #[derive(Resource)]
@@ -418,6 +442,43 @@ fn resume_physics(mut physics: ResMut<RapierConfiguration>) {
     physics.physics_pipeline_active = true;
 }
 
+fn start_in_game_music(
+    audio: Res<Audio>,
+    level_assets: Res<LevelAssets>,
+) {
+    audio.play(level_assets.in_game.clone());
+}
+
+fn resume_music(audio: Res<Audio>) {
+    audio.resume();
+}
+
+fn pause_music(audio: Res<Audio>) {
+    audio.pause();
+}
+
+fn stop_music(audio: Res<Audio>) {
+    audio.stop();
+}
+
+fn animate_volume_change(
+    time: Res<Time>,
+    audio: Res<Audio>,
+    mut game_settings: ResMut<GameSettings>,
+) {
+    game_settings.volume_change_timer.tick(time.delta());
+    if game_settings.volume_change_timer.finished()
+        && game_settings.current_volume != game_settings.volume
+    {
+        if game_settings.current_volume < game_settings.volume {
+            game_settings.current_volume += 0.01;
+        } else {
+            game_settings.current_volume -= 0.01;
+        }
+        audio.set_volume(game_settings.current_volume as f64);
+    }
+}
+
 fn spawn_initial_level(
     ui_resources: Res<UiResources>,
     level_assets: Res<LevelAssets>,
@@ -478,6 +539,7 @@ fn level_progress(
 }
 
 fn level_switch(
+    audio: Res<Audio>,
     ui_resources: Res<UiResources>,
     level_assets: Res<LevelAssets>,
     enemy_assets: Res<EnemyAssets>,
@@ -494,6 +556,10 @@ fn level_switch(
         let old_level_objects = level_objects.iter().collect::<Vec<_>>();
 
         let boss_level = level_info.game_progress == 100;
+        if boss_level {
+            audio.stop();
+            audio.play(level_assets.dragon_lair.clone());
+        }
 
         let new_level_type = if boss_level {
             LevelType::Open(LevelColor::Normal)

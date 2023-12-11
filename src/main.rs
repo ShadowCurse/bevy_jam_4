@@ -74,8 +74,11 @@ fn main() {
 
     app.insert_resource(GameSettings {
         window_mode: WindowMode::Windowed,
-        volume: 0.5,
         camera_sensitivity: 3.0,
+
+        volume: 0.5,
+        current_volume: 0.0,
+        volume_change_timer: Timer::new(std::time::Duration::from_millis(50), TimerMode::Repeating),
     });
 
     app.run();
@@ -144,6 +147,9 @@ impl_into_state!(UiState);
 #[derive(Resource)]
 struct GameSettings {
     window_mode: WindowMode,
-    volume: f32,
     camera_sensitivity: f32,
+
+    volume: f32,
+    current_volume: f32,
+    volume_change_timer: Timer,
 }
