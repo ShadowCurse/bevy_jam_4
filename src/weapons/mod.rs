@@ -8,7 +8,7 @@ use crate::{
     COLLISION_GROUP_PICKUP, COLLISION_GROUP_PLAYER, COLLISION_GROUP_PROJECTILES,
 };
 
-const DEFAULT_PROJECTILE_SIZE: f32 = 0.25; //0.125;
+const DEFAULT_PROJECTILE_SIZE: f32 = 0.125;
 const DEFAULT_CLIP_SIZE: f32 = 0.01;
 const DEFAULT_CLIP_LENGTH: f32 = 0.02;
 
@@ -542,7 +542,8 @@ fn weapon_shoot(
                         scene_bundle: SceneBundle {
                             scene: weapon_assets.round_scene.clone(),
                             transform: Transform::from_translation(projectile_translation)
-                                .with_rotation(projectile_rotation),
+                                .with_rotation(projectile_rotation)
+                                .with_scale(Vec3::new(10.0, 10.0, 10.0)),
                             ..default()
                         },
                         collider: Collider::ball(DEFAULT_PROJECTILE_SIZE),
@@ -573,7 +574,8 @@ fn weapon_shoot(
                             scene_bundle: SceneBundle {
                                 scene: weapon_assets.round_scene.clone(),
                                 transform: Transform::from_translation(projectile_translation)
-                                    .with_rotation(projectile_rotation),
+                                    .with_rotation(projectile_rotation)
+                                    .with_scale(Vec3::new(10.0, 10.0, 10.0)),
                                 ..default()
                             },
                             collider: Collider::ball(DEFAULT_PROJECTILE_SIZE),
@@ -601,7 +603,8 @@ fn weapon_shoot(
                             scene_bundle: SceneBundle {
                                 scene: weapon_assets.round_scene.clone(),
                                 transform: Transform::from_translation(projectile_translation)
-                                    .with_rotation(projectile_rotation),
+                                    .with_rotation(projectile_rotation)
+                                    .with_scale(Vec3::new(10.0, 10.0, 10.0)),
                                 ..default()
                             },
                             collider: Collider::ball(DEFAULT_PROJECTILE_SIZE),
@@ -626,7 +629,8 @@ fn weapon_shoot(
                         scene_bundle: SceneBundle {
                             scene: weapon_assets.round_scene.clone(),
                             transform: Transform::from_translation(left_barrel)
-                                .with_rotation(projectile_rotation),
+                                .with_rotation(projectile_rotation)
+                                .with_scale(Vec3::new(10.0, 10.0, 10.0)),
                             ..default()
                         },
                         collider: Collider::ball(DEFAULT_PROJECTILE_SIZE),
@@ -646,7 +650,8 @@ fn weapon_shoot(
                         scene_bundle: SceneBundle {
                             scene: weapon_assets.round_scene.clone(),
                             transform: Transform::from_translation(right_barrel)
-                                .with_rotation(projectile_rotation),
+                                .with_rotation(projectile_rotation)
+                                .with_scale(Vec3::new(10.0, 10.0, 10.0)),
                             ..default()
                         },
                         collider: Collider::ball(DEFAULT_PROJECTILE_SIZE),

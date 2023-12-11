@@ -645,6 +645,9 @@ fn collision_level_object_projectiles(
         } else {
             continue;
         };
-        commands.get_entity(projectile).unwrap().despawn();
+        let Some(e) = commands.get_entity(projectile) else {
+            continue;
+        };
+        e.despawn_recursive();
     }
 }
