@@ -30,6 +30,9 @@ const COLLISION_GROUP_ENEMY: Group = Group::GROUP_3;
 const COLLISION_GROUP_PROJECTILES: Group = Group::GROUP_4;
 const COLLISION_GROUP_PICKUP: Group = Group::GROUP_5;
 
+const INITIAL_VOLUME: f32 = 0.1;
+const INITIAL_CAMERA_SENSE: f32 = 0.5;
+
 fn main() {
     let mut app = App::new();
 
@@ -79,8 +82,8 @@ fn main() {
 
     app.insert_resource(GameSettings {
         window_mode: WindowMode::Windowed,
-        volume: 0.5,
-        camera_sensitivity: 1.0,
+        volume: INITIAL_VOLUME,
+        camera_sensitivity: INITIAL_CAMERA_SENSE,
     });
 
     app.add_systems(Startup, setup_audio_volume);
@@ -156,5 +159,5 @@ struct GameSettings {
 }
 
 fn setup_audio_volume(audio: Res<Audio>) {
-    audio.set_volume(0.5);
+    audio.set_volume(INITIAL_VOLUME as f64);
 }
