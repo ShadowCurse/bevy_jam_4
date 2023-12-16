@@ -1,5 +1,8 @@
 use bevy::{
     asset::AssetMetaCheck,
+    diagnostic::{
+        FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin, SystemInformationDiagnosticsPlugin,
+    },
     prelude::*,
     window::{WindowMode, WindowResolution},
 };
@@ -49,8 +52,10 @@ fn main() {
             }),
             ..default()
         }),
+        FrameTimeDiagnosticsPlugin,
+        SystemInformationDiagnosticsPlugin,
+        LogDiagnosticsPlugin::default(),
         RapierPhysicsPlugin::<NoUserData>::default(),
-        // RapierDebugRenderPlugin::default(),
         AudioPlugin,
         damage::DamagePlugin,
         enemies::EnemiesPlugin,
