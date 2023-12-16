@@ -7,8 +7,8 @@ use crate::{
     level::{LevelObject, LevelStarted},
     player::Player,
     weapons::{
-        floating::FloatingObjectBundle, ShootEvent, WeaponAssets, WeaponAttackTimer, WeaponBundle,
-        WeaponModel,
+        attach_weapon, floating::FloatingObjectBundle, ShootEvent, WeaponAssets, WeaponAttackTimer,
+        WeaponBundle, WeaponModel,
     },
     GlobalState, COLLISION_GROUP_ENEMY, COLLISION_GROUP_LEVEL, COLLISION_GROUP_PROJECTILES,
 };
@@ -313,42 +313,33 @@ pub fn spawn_enemy(
 
     let weapon_transform = Transform::from_translation(weapon_offset);
     let weapon = match enemy_type {
-        EnemyType::Small => commands
-            .spawn((WeaponBundle::pistol(weapon_transform), EnemyWeapon))
-            .with_children(|builder| {
-                builder.spawn((
-                    SceneBundle {
-                        scene: weapons_assets.pistol_scene.clone(),
-                        ..default()
-                    },
-                    WeaponModel,
-                ));
-            })
-            .id(),
-        EnemyType::Mid => commands
-            .spawn((WeaponBundle::shotgun(weapon_transform), EnemyWeapon))
-            .with_children(|builder| {
-                builder.spawn((
-                    SceneBundle {
-                        scene: weapons_assets.shotgun_scene.clone(),
-                        ..default()
-                    },
-                    WeaponModel,
-                ));
-            })
-            .id(),
-        EnemyType::Big => commands
-            .spawn((WeaponBundle::minigun(weapon_transform), EnemyWeapon))
-            .with_children(|builder| {
-                builder.spawn((
-                    SceneBundle {
-                        scene: weapons_assets.minigun_scene.clone(),
-                        ..default()
-                    },
-                    WeaponModel,
-                ));
-            })
-            .id(),
+        EnemyType::Small => attach_weapon!(
+            commands,
+            weapons_assets,
+            weapon_transform,
+            pistol,
+            pistol_scene
+        )
+        .insert(EnemyWeapon)
+        .id(),
+        EnemyType::Mid => attach_weapon!(
+            commands,
+            weapons_assets,
+            weapon_transform,
+            shotgun,
+            shotgun_scene
+        )
+        .insert(EnemyWeapon)
+        .id(),
+        EnemyType::Big => attach_weapon!(
+            commands,
+            weapons_assets,
+            weapon_transform,
+            minigun,
+            minigun_scene
+        )
+        .insert(EnemyWeapon)
+        .id(),
     };
 
     enemy.attached_weapon = Some(weapon);

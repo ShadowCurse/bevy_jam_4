@@ -24,8 +24,14 @@ pub struct FloatingObject {
     pub original_translation: Vec3,
 }
 
+#[derive(Component)]
+pub struct FloatingObjectInternal;
+
 #[derive(Bundle)]
 pub struct FloatingObjectBundle {
+    pub transform_bundle: TransformBundle,
+    pub inherited_visibility: InheritedVisibility,
+
     pub collider: Collider,
     pub collision_groups: CollisionGroups,
     pub sensor: Sensor,
@@ -38,6 +44,11 @@ pub struct FloatingObjectBundle {
 impl FloatingObjectBundle {
     pub fn new(original_translation: Vec3) -> Self {
         Self {
+            transform_bundle: TransformBundle::from_transform(Transform::from_translation(
+                original_translation,
+            )),
+            inherited_visibility: InheritedVisibility::VISIBLE,
+
             collider: Collider::ball(COLLIDER_RADIUS),
             collision_groups: CollisionGroups::new(COLLISION_GROUP_PICKUP, COLLISION_GROUP_PLAYER),
             sensor: Sensor,

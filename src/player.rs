@@ -6,10 +6,7 @@ use bevy_rapier3d::{prelude::*, rapier::geometry::CollisionEventFlags};
 use crate::{
     damage::{Damage, Health, KillEvent},
     ui::UiResources,
-    weapons::{
-        floating::{FloatingObject, FloatingObjectBundle},
-        Ammo, ShootEvent, WeaponAttackTimer,
-    },
+    weapons::{floating::FloatingObject, Ammo, ShootEvent, WeaponAttackTimer},
     GameSettings, GlobalState, COLLISION_GROUP_ENEMY, COLLISION_GROUP_LEVEL,
     COLLISION_GROUP_PICKUP, COLLISION_GROUP_PLAYER, COLLISION_GROUP_PROJECTILES,
 };
@@ -362,7 +359,7 @@ fn player_pick_up_weapon(
     player: Query<Entity, With<Player>>,
     player_camera: Query<Entity, With<PlayerCamera>>,
     player_weapon: Query<Entity, With<PlayerWeapon>>,
-    weapons: Query<Entity, With<FloatingObject>>,
+    floating_objects: Query<(Entity, &Children), With<FloatingObject>>,
     mut commands: Commands,
     mut collision_events: EventReader<CollisionEvent>,
 ) {
@@ -390,14 +387,14 @@ fn player_pick_up_weapon(
         {
             return;
         }
-        let weapon = if collider_1 == &player {
-            if let Ok(w) = weapons.get(*collider_2) {
+        let (floating_object_entity, floating_object_children) = if collider_1 == &player {
+            if let Ok(w) = floating_objects.get(*collider_2) {
                 w
             } else {
                 continue;
             }
         } else if collider_2 == &player {
-            if let Ok(w) = weapons.get(*collider_1) {
+            if let Ok(w) = floating_objects.get(*collider_1) {
                 w
             } else {
                 continue;
@@ -406,22 +403,29 @@ fn player_pick_up_weapon(
             continue;
         };
 
-        commands
-            .get_entity(weapon)
-            .unwrap()
-            .insert(PlayerWeapon {
+        let Some(mut floating_object_commands) = commands.get_entity(floating_object_entity) else {
+            continue;
+        };
+        let weapon_entity = floating_object_children[0];
+
+        floating_object_commands.remove_children(&[weapon_entity]);
+        floating_object_commands.despawn();
+
+        let Some(mut weapon_commands) = commands.get_entity(weapon_entity) else {
+            continue;
+        };
+        weapon_commands.insert((
+            PlayerWeapon {
                 default_translation: PLAYER_WEAPON_DEFAULT_TRANSLATION,
                 bounce_continue: false,
                 bounce_progress: 0.0,
                 bounce_speed: 4.0,
                 bounce_amplitude: 0.08,
-            })
-            .insert(
-                Transform::default()
-                    .with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
-            )
-            .remove::<FloatingObjectBundle>();
-        commands.get_entity(camera).unwrap().add_child(weapon);
+            },
+            Transform::default().with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
+        ));
+
+        commands.entity(camera).add_child(weapon_entity);
     }
 }
 

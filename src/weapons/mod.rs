@@ -8,7 +8,7 @@ use crate::{
     COLLISION_GROUP_PLAYER, COLLISION_GROUP_PROJECTILES,
 };
 
-use self::floating::FloatingObjectBundle;
+use self::floating::{FloatingObjectBundle, FloatingObjectInternal};
 
 pub mod floating;
 
@@ -298,8 +298,25 @@ impl Default for ShellBundle {
     }
 }
 
+macro_rules! attach_weapon {
+    ($commands:ident, $weapon_assets:ident, $transform:ident, $bundle_fn:ident, $asset:ident) => {
+        $commands
+            .spawn(WeaponBundle::$bundle_fn($transform))
+            .with_children(|builder| {
+                builder.spawn((
+                    SceneBundle {
+                        scene: $weapon_assets.$asset.clone(),
+                        ..default()
+                    },
+                    WeaponModel,
+                ));
+            })
+    };
+}
+pub(crate) use attach_weapon;
+
 pub fn spawn_weapon(
-    weapons_assets: &WeaponAssets,
+    weapon_assets: &WeaponAssets,
     weapon_type: WeaponType,
     commands: &mut Commands,
     transform: Transform,
@@ -307,51 +324,30 @@ pub fn spawn_weapon(
     match weapon_type {
         WeaponType::Pistol => {
             commands
-                .spawn((
-                    WeaponBundle::pistol(transform),
-                    FloatingObjectBundle::new(transform.translation),
-                ))
+                .spawn((FloatingObjectBundle::new(transform.translation),))
                 .with_children(|builder| {
-                    builder.spawn((
-                        SceneBundle {
-                            scene: weapons_assets.pistol_scene.clone(),
-                            ..default()
-                        },
-                        WeaponModel,
-                    ));
+                    let transform = Transform::default();
+                    _ = attach_weapon!(builder, weapon_assets, transform, pistol, pistol_scene)
+                        .insert(FloatingObjectInternal);
                 });
         }
 
         WeaponType::Shotgun => {
             commands
-                .spawn((
-                    WeaponBundle::shotgun(transform),
-                    FloatingObjectBundle::new(transform.translation),
-                ))
+                .spawn((FloatingObjectBundle::new(transform.translation),))
                 .with_children(|builder| {
-                    builder.spawn((
-                        SceneBundle {
-                            scene: weapons_assets.shotgun_scene.clone(),
-                            ..default()
-                        },
-                        WeaponModel,
-                    ));
+                    let transform = Transform::default();
+                    _ = attach_weapon!(builder, weapon_assets, transform, shotgun, shotgun_scene)
+                        .insert(FloatingObjectInternal);
                 });
         }
         WeaponType::Minigun => {
             commands
-                .spawn((
-                    WeaponBundle::minigun(transform),
-                    FloatingObjectBundle::new(transform.translation),
-                ))
+                .spawn((FloatingObjectBundle::new(transform.translation),))
                 .with_children(|builder| {
-                    builder.spawn((
-                        SceneBundle {
-                            scene: weapons_assets.minigun_scene.clone(),
-                            ..default()
-                        },
-                        WeaponModel,
-                    ));
+                    let transform = Transform::default();
+                    _ = attach_weapon!(builder, weapon_assets, transform, minigun, minigun_scene)
+                        .insert(FloatingObjectInternal);
                 });
         }
     }
