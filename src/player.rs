@@ -6,7 +6,10 @@ use bevy_rapier3d::{prelude::*, rapier::geometry::CollisionEventFlags};
 use crate::{
     damage::{Damage, Health, KillEvent},
     ui::UiResources,
-    weapons::{Ammo, FreeFloatingWeapon, FreeFloatingWeaponBundle, ShootEvent, WeaponAttackTimer},
+    weapons::{
+        floating::{FloatingObject, FloatingObjectBundle},
+        Ammo, ShootEvent, WeaponAttackTimer,
+    },
     GameSettings, GlobalState, COLLISION_GROUP_ENEMY, COLLISION_GROUP_LEVEL,
     COLLISION_GROUP_PICKUP, COLLISION_GROUP_PLAYER, COLLISION_GROUP_PROJECTILES,
 };
@@ -359,7 +362,7 @@ fn player_pick_up_weapon(
     player: Query<Entity, With<Player>>,
     player_camera: Query<Entity, With<PlayerCamera>>,
     player_weapon: Query<Entity, With<PlayerWeapon>>,
-    weapons: Query<Entity, With<FreeFloatingWeapon>>,
+    weapons: Query<Entity, With<FloatingObject>>,
     mut commands: Commands,
     mut collision_events: EventReader<CollisionEvent>,
 ) {
@@ -417,7 +420,7 @@ fn player_pick_up_weapon(
                 Transform::default()
                     .with_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_2)),
             )
-            .remove::<FreeFloatingWeaponBundle>();
+            .remove::<FloatingObjectBundle>();
         commands.get_entity(camera).unwrap().add_child(weapon);
     }
 }

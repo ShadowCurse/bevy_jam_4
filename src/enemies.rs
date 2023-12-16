@@ -7,7 +7,7 @@ use crate::{
     level::{LevelObject, LevelStarted},
     player::Player,
     weapons::{
-        FreeFloatingWeaponBundle, ShootEvent, WeaponAssets, WeaponAttackTimer, WeaponBundle,
+        floating::FloatingObjectBundle, ShootEvent, WeaponAssets, WeaponAttackTimer, WeaponBundle,
         WeaponModel,
     },
     GlobalState, COLLISION_GROUP_ENEMY, COLLISION_GROUP_LEVEL, COLLISION_GROUP_PROJECTILES,
@@ -608,7 +608,7 @@ fn enemy_die(
                         .get_entity(weapon)
                         .unwrap()
                         .remove::<EnemyWeapon>()
-                        .insert(FreeFloatingWeaponBundle::new(enemy_transform.translation));
+                        .insert(FloatingObjectBundle::new(enemy_transform.translation));
                 }
             }
 

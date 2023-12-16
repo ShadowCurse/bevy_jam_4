@@ -5,17 +5,16 @@ use bevy_rapier3d::prelude::*;
 
 use crate::{
     damage::Damage, level::LevelObject, GlobalState, COLLISION_GROUP_ENEMY, COLLISION_GROUP_LEVEL,
-    COLLISION_GROUP_PICKUP, COLLISION_GROUP_PLAYER, COLLISION_GROUP_PROJECTILES,
+    COLLISION_GROUP_PLAYER, COLLISION_GROUP_PROJECTILES,
 };
+
+use self::floating::FloatingObjectBundle;
+
+pub mod floating;
 
 const DEFAULT_PROJECTILE_SIZE: f32 = 0.125;
 const DEFAULT_CLIP_SIZE: f32 = 0.01;
 const DEFAULT_CLIP_LENGTH: f32 = 0.02;
-
-const FREE_FLOATING_WEAPON_COLLIDER_RADIUS: f32 = 1.5;
-const FREE_FLOATING_WEAPON_ROTATION_SPEED: f32 = 0.4;
-const FREE_FLOATING_WEAPON_AMPLITUDE_MODIFIER: f32 = 0.5;
-const FREE_FLOATING_WEAPON_BOUNCE_SPEED_MODIFIER: f32 = 2.0;
 
 // Pistol
 const PISTOL_AMMO: u32 = 20;
@@ -75,11 +74,12 @@ impl Plugin for WeaponsPlugin {
 
         app.add_event::<ShootEvent>();
 
+        app.add_plugins(floating::FloatingPlugin);
+
         app.add_systems(
             Update,
             (
                 update_attack_timers,
-                update_free_floating_weapons,
                 weapon_shoot,
                 weapon_animation,
                 // display_events,
@@ -160,9 +160,16 @@ pub struct WeaponAttackTimer {
     pub ready: bool,
 }
 
-#[derive(Component)]
-pub struct FreeFloatingWeapon {
-    pub original_translation: Vec3,
+impl WeaponAttackTimer {
+    pub fn new(seconds: f32) -> Self {
+        Self {
+            attack_timer: Timer::new(
+                std::time::Duration::from_secs_f32(seconds),
+                TimerMode::Repeating,
+            ),
+            ready: false,
+        }
+    }
 }
 
 #[derive(Bundle)]
@@ -291,45 +298,6 @@ impl Default for ShellBundle {
     }
 }
 
-#[derive(Bundle)]
-pub struct FreeFloatingWeaponBundle {
-    pub collider: Collider,
-    pub collision_groups: CollisionGroups,
-    pub sensor: Sensor,
-    pub active_events: ActiveEvents,
-    pub free_floating_weapon: FreeFloatingWeapon,
-
-    pub level_object: LevelObject,
-}
-
-impl FreeFloatingWeaponBundle {
-    pub fn new(original_translation: Vec3) -> Self {
-        Self {
-            collider: Collider::ball(FREE_FLOATING_WEAPON_COLLIDER_RADIUS),
-            collision_groups: CollisionGroups::new(COLLISION_GROUP_PICKUP, COLLISION_GROUP_PLAYER),
-            sensor: Sensor,
-            active_events: ActiveEvents::COLLISION_EVENTS,
-            free_floating_weapon: FreeFloatingWeapon {
-                original_translation,
-            },
-
-            level_object: LevelObject,
-        }
-    }
-}
-
-impl WeaponAttackTimer {
-    pub fn new(seconds: f32) -> Self {
-        Self {
-            attack_timer: Timer::new(
-                std::time::Duration::from_secs_f32(seconds),
-                TimerMode::Repeating,
-            ),
-            ready: false,
-        }
-    }
-}
-
 pub fn spawn_weapon(
     weapons_assets: &WeaponAssets,
     weapon_type: WeaponType,
@@ -341,7 +309,7 @@ pub fn spawn_weapon(
             commands
                 .spawn((
                     WeaponBundle::pistol(transform),
-                    FreeFloatingWeaponBundle::new(transform.translation),
+                    FloatingObjectBundle::new(transform.translation),
                 ))
                 .with_children(|builder| {
                     builder.spawn((
@@ -358,7 +326,7 @@ pub fn spawn_weapon(
             commands
                 .spawn((
                     WeaponBundle::shotgun(transform),
-                    FreeFloatingWeaponBundle::new(transform.translation),
+                    FloatingObjectBundle::new(transform.translation),
                 ))
                 .with_children(|builder| {
                     builder.spawn((
@@ -374,7 +342,7 @@ pub fn spawn_weapon(
             commands
                 .spawn((
                     WeaponBundle::minigun(transform),
-                    FreeFloatingWeaponBundle::new(transform.translation),
+                    FloatingObjectBundle::new(transform.translation),
                 ))
                 .with_children(|builder| {
                     builder.spawn((
@@ -397,19 +365,6 @@ fn update_attack_timers(time: Res<Time>, mut timers: Query<&mut WeaponAttackTime
                 timer.ready = true;
             }
         }
-    }
-}
-
-fn update_free_floating_weapons(
-    time: Res<Time>,
-    mut weapons: Query<(&FreeFloatingWeapon, &mut Transform)>,
-) {
-    for (floating, mut weapon_transform) in weapons.iter_mut() {
-        weapon_transform.translation = floating.original_translation
-            + Vec3::NEG_Z
-                * FREE_FLOATING_WEAPON_AMPLITUDE_MODIFIER
-                * (time.elapsed().as_secs_f32() * FREE_FLOATING_WEAPON_BOUNCE_SPEED_MODIFIER).sin();
-        weapon_transform.rotate_z(time.delta_seconds() * FREE_FLOATING_WEAPON_ROTATION_SPEED);
     }
 }
 
