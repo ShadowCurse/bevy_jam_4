@@ -17,8 +17,8 @@ use crate::{
     ui::UiResources,
     utils::remove_all_with,
     weapons::{Projectile, WeaponAssets},
-    GameSettings, GlobalState, COLLISION_GROUP_ENEMY, COLLISION_GROUP_LEVEL,
-    COLLISION_GROUP_PLAYER, COLLISION_GROUP_PROJECTILES,
+    GlobalState, COLLISION_GROUP_ENEMY, COLLISION_GROUP_LEVEL, COLLISION_GROUP_PLAYER,
+    COLLISION_GROUP_PROJECTILES,
 };
 
 use self::{
