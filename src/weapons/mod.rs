@@ -82,7 +82,6 @@ impl Plugin for WeaponsPlugin {
                 update_attack_timers,
                 weapon_shoot,
                 weapon_animation,
-                // display_events,
             )
                 .run_if(in_state(GlobalState::InGame)),
         );
@@ -706,15 +705,3 @@ fn weapon_shoot(
         }
     }
 }
-
-// fn display_events(
-//     // rapier_context: Res<bevy_rapier3d::plugin::RapierContext>,
-//     mut collision_events: EventReader<bevy_rapier3d::pipeline::CollisionEvent>,
-// ) {
-//     // for p in rapier_context.contact_pairs() {
-//     //     println!("pair: {:?} : {:?}", p.collider1(), p.collider2());
-//     // }
-//     for collision_event in collision_events.read() {
-//         println!("Received collision event: {:?}", collision_event);
-//     }
-// }
