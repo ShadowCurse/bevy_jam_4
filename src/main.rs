@@ -10,6 +10,7 @@ use bevy_asset_loader::prelude::*;
 use bevy_kira_audio::{Audio, AudioControl, AudioPlugin};
 use bevy_rapier3d::prelude::*;
 
+mod animation;
 mod damage;
 mod enemies;
 mod hud;
@@ -60,6 +61,7 @@ fn main() {
         LogDiagnosticsPlugin::default(),
         RapierPhysicsPlugin::<NoUserData>::default(),
         AudioPlugin,
+        animation::AnimationPlugin,
         damage::DamagePlugin,
         enemies::EnemiesPlugin,
         hud::HudPlugin,

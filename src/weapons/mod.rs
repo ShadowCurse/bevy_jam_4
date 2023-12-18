@@ -4,8 +4,8 @@ use bevy_kira_audio::{Audio, AudioControl, AudioSource};
 use bevy_rapier3d::prelude::*;
 
 use crate::{
-    damage::Damage, level::LevelObject, GlobalState, COLLISION_GROUP_ENEMY, COLLISION_GROUP_LEVEL,
-    COLLISION_GROUP_PLAYER, COLLISION_GROUP_PROJECTILES,
+    animation::Animation, damage::Damage, level::LevelObject, GlobalState, COLLISION_GROUP_ENEMY,
+    COLLISION_GROUP_LEVEL, COLLISION_GROUP_PLAYER, COLLISION_GROUP_PROJECTILES,
 };
 
 use self::floating::{FloatingObjectBundle, FloatingObjectInternal};
@@ -78,8 +78,7 @@ impl Plugin for WeaponsPlugin {
 
         app.add_systems(
             Update,
-            (update_attack_timers, weapon_shoot, weapon_animation)
-                .run_if(in_state(GlobalState::InGame)),
+            (update_attack_timers, weapon_shoot).run_if(in_state(GlobalState::InGame)),
         );
     }
 }
@@ -117,16 +116,6 @@ pub enum WeaponType {
     Pistol,
     Shotgun,
     Minigun,
-}
-
-#[derive(Component)]
-struct WeaponShootAnimation {
-    animate_forward: bool,
-    animate_backward: bool,
-    animation_speed: f32,
-    progress: f32,
-    initial_transform: Transform,
-    target_transform: Transform,
 }
 
 #[derive(Default, Component)]
@@ -359,55 +348,6 @@ fn update_attack_timers(time: Res<Time>, mut timers: Query<&mut WeaponAttackTime
     }
 }
 
-fn weapon_animation(
-    time: Res<Time>,
-    mut commands: Commands,
-    mut animated_weapons: Query<(Entity, &mut WeaponShootAnimation, &mut Transform)>,
-) {
-    for (hud, mut animation, mut transform) in animated_weapons.iter_mut() {
-        animation.progress += time.delta_seconds() * animation.animation_speed;
-
-        if animation.animate_forward {
-            transform.translation = animation
-                .initial_transform
-                .translation
-                .lerp(animation.target_transform.translation, animation.progress);
-            transform.rotation = animation
-                .initial_transform
-                .rotation
-                .lerp(animation.target_transform.rotation, animation.progress);
-
-            if 1.0 <= animation.progress {
-                if animation.animate_backward {
-                    animation.progress = 0.0;
-                    animation.animate_forward = false;
-                } else {
-                    let Some(mut e) = commands.get_entity(hud) else {
-                        return;
-                    };
-                    e.remove::<WeaponShootAnimation>();
-                }
-            }
-        } else if animation.animate_backward {
-            transform.translation = animation
-                .target_transform
-                .translation
-                .lerp(animation.initial_transform.translation, animation.progress);
-            transform.rotation = animation
-                .target_transform
-                .rotation
-                .lerp(animation.initial_transform.rotation, animation.progress);
-
-            if 1.0 <= animation.progress {
-                let Some(mut e) = commands.get_entity(hud) else {
-                    return;
-                };
-                e.remove::<WeaponShootAnimation>();
-            }
-        }
-    }
-}
-
 fn weapon_shoot(
     audio: Res<Audio>,
     weapon_assets: Res<WeaponAssets>,
@@ -519,7 +459,7 @@ fn pistol_shoot(
     let Some(mut e) = commands.get_entity(weapon_model) else {
         return;
     };
-    e.insert(WeaponShootAnimation {
+    e.insert(Animation {
         animate_forward: PISTOL_ANIMATION_FORWARD,
         animate_backward: PISTOL_ANIMATION_BACKWARD,
         animation_speed: PISTOL_ANIMATION_SPEED,
@@ -622,7 +562,7 @@ fn shotgun_shoot(
     let Some(mut e) = commands.get_entity(weapon_model) else {
         return;
     };
-    e.insert(WeaponShootAnimation {
+    e.insert(Animation {
         animate_forward: SHOTGUN_ANIMATION_FORWARD,
         animate_backward: SHOTGUN_ANIMATION_BACKWARD,
         animation_speed: SHOTGUN_ANIMATION_SPEED,
@@ -716,7 +656,7 @@ fn minigun_shoot(
     let Some(mut e) = commands.get_entity(weapon_model) else {
         return;
     };
-    e.insert(WeaponShootAnimation {
+    e.insert(Animation {
         animate_forward: MINIGUN_ANIMATION_FORWARD,
         animate_backward: MINIGUN_ANIMATION_BACKWARD,
         animation_speed: MINIGUN_ANIMATION_SPEED,

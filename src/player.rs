@@ -4,6 +4,7 @@ use bevy::{
 use bevy_rapier3d::{prelude::*, rapier::geometry::CollisionEventFlags};
 
 use crate::{
+    animation::Animation,
     damage::{Damage, Health, KillEvent},
     ui::UiResources,
     weapons::{floating::FloatingObject, Ammo, ShootEvent, WeaponAttackTimer},
@@ -41,13 +42,10 @@ impl Plugin for PlayerPlugin {
         app.add_systems(OnEnter(GlobalState::GameOver), player_toggle_hud_on);
         app.add_systems(OnEnter(GlobalState::GameWon), player_toggle_hud_on);
 
-        app.add_systems(Update, player_hud_animation);
-
         app.add_systems(
             Update,
             (
                 player_kills_reading,
-                player_hud_animation,
                 player_trigger_pause,
                 player_shoot,
                 player_pick_up_weapon,
@@ -99,13 +97,6 @@ pub struct PlayerCamera {
 
 #[derive(Component)]
 struct PlayerHud;
-
-#[derive(Component)]
-struct PlayerHudAnimation {
-    progress: f32,
-    initial_transform: Transform,
-    target_transform: Transform,
-}
 
 #[derive(Component)]
 pub struct PlayerWeapon {
@@ -283,7 +274,10 @@ fn player_toggle_hud_on(hud: Query<Entity, With<PlayerHud>>, mut commands: Comma
         return;
     };
 
-    e.insert(PlayerHudAnimation {
+    e.insert(Animation {
+        animate_forward: true,
+        animate_backward: false,
+        animation_speed: PLAYER_HUD_ANIMATION_SPEED,
         progress: 0.0,
         initial_transform,
         target_transform,
@@ -305,38 +299,14 @@ fn player_toggle_hud_off(hud: Query<Entity, With<PlayerHud>>, mut commands: Comm
         return;
     };
 
-    e.insert(PlayerHudAnimation {
+    e.insert(Animation {
+        animate_forward: true,
+        animate_backward: false,
+        animation_speed: PLAYER_HUD_ANIMATION_SPEED,
         progress: 0.0,
         initial_transform,
         target_transform,
     });
-}
-
-fn player_hud_animation(
-    time: Res<Time>,
-    mut commands: Commands,
-    mut animated_hud: Query<(Entity, &mut PlayerHudAnimation, &mut Transform), With<PlayerHud>>,
-) {
-    let Ok((hud, mut hud_animation, mut hud_transform)) = animated_hud.get_single_mut() else {
-        return;
-    };
-
-    hud_animation.progress += time.delta_seconds() * PLAYER_HUD_ANIMATION_SPEED;
-    hud_transform.translation = hud_animation.initial_transform.translation.lerp(
-        hud_animation.target_transform.translation,
-        hud_animation.progress,
-    );
-    hud_transform.rotation = hud_animation.initial_transform.rotation.lerp(
-        hud_animation.target_transform.rotation,
-        hud_animation.progress,
-    );
-
-    if 1.0 <= hud_animation.progress {
-        let Some(mut e) = commands.get_entity(hud) else {
-            return;
-        };
-        e.remove::<PlayerHudAnimation>();
-    }
 }
 
 fn player_kills_reading(
