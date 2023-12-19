@@ -22,7 +22,7 @@ use crate::{
 };
 
 use self::{
-    door::{Door, DoorAnimationFinished, DoorAnimationType},
+    door::Door,
     generation::{spawn_level, spawn_level_sun},
 };
 
@@ -609,20 +609,15 @@ fn level_switch(
 fn level_delete_old(
     mut commands: Commands,
     mut level_state: ResMut<LevelInfo>,
-    mut door_amimation_finished_events: EventReader<DoorAnimationFinished>,
+    mut level_started_events: EventReader<LevelStarted>,
 ) {
-    for animation_finished_event in door_amimation_finished_events.read() {
-        match animation_finished_event.animation_type {
-            DoorAnimationType::Open => {}
-            DoorAnimationType::Close => {
-                for object in level_state.old_level_objects.iter() {
-                    if let Some(e) = commands.get_entity(*object) {
-                        e.despawn_recursive();
-                    }
-                }
-                level_state.old_level_objects.clear();
+    for _ in level_started_events.read() {
+        for object in level_state.old_level_objects.iter() {
+            if let Some(e) = commands.get_entity(*object) {
+                e.despawn_recursive();
             }
         }
+        level_state.old_level_objects.clear();
     }
 }
 

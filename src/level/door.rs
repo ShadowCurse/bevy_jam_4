@@ -20,8 +20,6 @@ pub struct DoorPlugin;
 
 impl Plugin for DoorPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<DoorAnimationFinished>();
-
         app.add_systems(
             Update,
             (level_finished, door_use, animate_door).run_if(in_state(GlobalState::InGame)),
@@ -43,11 +41,6 @@ pub enum DoorState {
     Unlocked,
     Used,
     TemporaryOpen,
-}
-
-#[derive(Event)]
-pub struct DoorAnimationFinished {
-    pub animation_type: DoorAnimationType,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -390,29 +383,54 @@ fn door_use(
             };
         }
 
-        if door.door_state != DoorState::Unlocked {
-            return;
+        if door.door_state == DoorState::Unlocked {
+            door.door_state = DoorState::Used;
+
+            level_switch_events.send(LevelSwitch { exit_door: *door });
+
+            commands
+                .get_entity(door_entity)
+                .unwrap()
+                .insert(DoorAnimation {
+                    animation_type: DoorAnimationType::Open,
+                    animation_progress: 0.0,
+                    original_translation: door_transform.translation,
+                });
         }
 
-        door.door_state = DoorState::Used;
-
-        level_switch_events.send(LevelSwitch { exit_door: *door });
-
-        commands
-            .get_entity(door_entity)
-            .unwrap()
-            .insert(DoorAnimation {
-                animation_type: DoorAnimationType::Open,
-                animation_progress: 0.0,
-                original_translation: door_transform.translation,
-            });
+        if door.door_state == DoorState::Used {
+            // Player enters the level with this door
+            let player_went_though = match door.door_type {
+                DoorType::Top => {
+                    player_transform.translation.y > door_sensor_transform.translation.y
+                }
+                DoorType::Bottom => {
+                    player_transform.translation.y < door_sensor_transform.translation.y
+                }
+                DoorType::Left => {
+                    player_transform.translation.x < door_sensor_transform.translation.x
+                }
+                DoorType::Right => {
+                    player_transform.translation.x > door_sensor_transform.translation.x
+                }
+            };
+            if player_went_though {
+                commands
+                    .get_entity(door_entity)
+                    .unwrap()
+                    .insert(DoorAnimation {
+                        animation_type: DoorAnimationType::Close,
+                        animation_progress: 0.0,
+                        original_translation: door_transform.translation,
+                    });
+            }
+        }
     }
 }
 
 fn animate_door(
     time: Res<Time>,
     mut commands: Commands,
-    mut door_amimation_finished_events: EventWriter<DoorAnimationFinished>,
     mut animated_doors: Query<(Entity, &mut DoorAnimation, &mut Transform)>,
 ) {
     for (door_entity, mut animation, mut transform) in animated_doors.iter_mut() {
@@ -432,10 +450,6 @@ fn animate_door(
             .lerp(target_translation, animation.animation_progress);
 
         if 1.0 <= animation.animation_progress {
-            door_amimation_finished_events.send(DoorAnimationFinished {
-                animation_type: animation.animation_type,
-            });
-
             commands
                 .get_entity(door_entity)
                 .unwrap()
