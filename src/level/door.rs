@@ -347,83 +347,89 @@ fn door_use(
         let (door_entity, door_transform, mut door) =
             doors.get_mut(door_sensor.associated_door).unwrap();
 
-        if door.door_state == DoorState::TemporaryOpen {
-            match collision_event {
-                CollisionEvent::Started(_, _, _) => return,
-                CollisionEvent::Stopped(_, _, _) => {
-                    // Player enters the level with this door
-                    let player_went_though = match door.door_type {
-                        DoorType::Top => {
-                            player_transform.translation.y < door_sensor_transform.translation.y
-                        }
-                        DoorType::Bottom => {
-                            player_transform.translation.y > door_sensor_transform.translation.y
-                        }
-                        DoorType::Left => {
-                            player_transform.translation.x > door_sensor_transform.translation.x
-                        }
-                        DoorType::Right => {
-                            player_transform.translation.x < door_sensor_transform.translation.x
-                        }
-                    };
-                    if player_went_though {
-                        level_start_events.send(LevelStarted);
+        match door.door_state {
+            DoorState::TemporaryOpen => {
+                match collision_event {
+                    CollisionEvent::Started(_, _, _) => return,
+                    CollisionEvent::Stopped(_, _, _) => {
+                        // Player enters the level with this door
+                        let player_went_though = match door.door_type {
+                            DoorType::Top => {
+                                player_transform.translation.y < door_sensor_transform.translation.y
+                            }
+                            DoorType::Bottom => {
+                                player_transform.translation.y > door_sensor_transform.translation.y
+                            }
+                            DoorType::Left => {
+                                player_transform.translation.x > door_sensor_transform.translation.x
+                            }
+                            DoorType::Right => {
+                                player_transform.translation.x < door_sensor_transform.translation.x
+                            }
+                        };
+                        if player_went_though {
+                            level_start_events.send(LevelStarted);
 
-                        door.door_state = DoorState::Locked;
-                        commands
-                            .get_entity(door_entity)
-                            .unwrap()
-                            .insert(DoorAnimation {
-                                animation_type: DoorAnimationType::Close,
-                                animation_progress: 0.0,
-                                original_translation: door_transform.translation,
-                            });
+                            door.door_state = DoorState::Locked;
+                            commands
+                                .get_entity(door_entity)
+                                .unwrap()
+                                .insert(DoorAnimation {
+                                    animation_type: DoorAnimationType::Close,
+                                    animation_progress: 0.0,
+                                    original_translation: door_transform.translation,
+                                });
+                        }
                     }
-                }
-            };
-        }
+                };
+            }
+            DoorState::Unlocked => {
+                door.door_state = DoorState::Used;
 
-        if door.door_state == DoorState::Unlocked {
-            door.door_state = DoorState::Used;
+                level_switch_events.send(LevelSwitch { exit_door: *door });
 
-            level_switch_events.send(LevelSwitch { exit_door: *door });
-
-            commands
-                .get_entity(door_entity)
-                .unwrap()
-                .insert(DoorAnimation {
-                    animation_type: DoorAnimationType::Open,
-                    animation_progress: 0.0,
-                    original_translation: door_transform.translation,
-                });
-        }
-
-        if door.door_state == DoorState::Used {
-            // Player enters the level with this door
-            let player_went_though = match door.door_type {
-                DoorType::Top => {
-                    player_transform.translation.y > door_sensor_transform.translation.y
-                }
-                DoorType::Bottom => {
-                    player_transform.translation.y < door_sensor_transform.translation.y
-                }
-                DoorType::Left => {
-                    player_transform.translation.x < door_sensor_transform.translation.x
-                }
-                DoorType::Right => {
-                    player_transform.translation.x > door_sensor_transform.translation.x
-                }
-            };
-            if player_went_though {
                 commands
                     .get_entity(door_entity)
                     .unwrap()
                     .insert(DoorAnimation {
-                        animation_type: DoorAnimationType::Close,
+                        animation_type: DoorAnimationType::Open,
                         animation_progress: 0.0,
                         original_translation: door_transform.translation,
                     });
             }
+            DoorState::Used => {
+                match collision_event {
+                    CollisionEvent::Started(_, _, _) => return,
+                    CollisionEvent::Stopped(_, _, _) => {
+                        // Player exits the level with this door
+                        let player_went_though = match door.door_type {
+                            DoorType::Top => {
+                                player_transform.translation.y > door_sensor_transform.translation.y
+                            }
+                            DoorType::Bottom => {
+                                player_transform.translation.y < door_sensor_transform.translation.y
+                            }
+                            DoorType::Left => {
+                                player_transform.translation.x < door_sensor_transform.translation.x
+                            }
+                            DoorType::Right => {
+                                player_transform.translation.x > door_sensor_transform.translation.x
+                            }
+                        };
+                        if player_went_though {
+                            commands
+                                .get_entity(door_entity)
+                                .unwrap()
+                                .insert(DoorAnimation {
+                                    animation_type: DoorAnimationType::Close,
+                                    animation_progress: 0.0,
+                                    original_translation: door_transform.translation,
+                                });
+                        }
+                    }
+                }
+            }
+            DoorState::Locked => {}
         }
     }
 }
