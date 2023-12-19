@@ -2,8 +2,8 @@ use bevy::prelude::*;
 use bevy_rapier3d::{prelude::*, rapier::geometry::CollisionEventFlags};
 
 use crate::{
-    player::Player, GlobalState, COLLISION_GROUP_ENEMY, COLLISION_GROUP_LEVEL,
-    COLLISION_GROUP_PLAYER, COLLISION_GROUP_PROJECTILES,
+    animation::Animation, player::Player, GlobalState, COLLISION_GROUP_ENEMY,
+    COLLISION_GROUP_LEVEL, COLLISION_GROUP_PLAYER, COLLISION_GROUP_PROJECTILES,
 };
 
 use super::{
@@ -22,7 +22,7 @@ impl Plugin for DoorPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
-            (level_finished, door_use, animate_door).run_if(in_state(GlobalState::InGame)),
+            (level_finished, door_use).run_if(in_state(GlobalState::InGame)),
         );
     }
 }
@@ -41,19 +41,6 @@ pub enum DoorState {
     Unlocked,
     Used,
     TemporaryOpen,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum DoorAnimationType {
-    Open,
-    Close,
-}
-
-#[derive(Component)]
-pub struct DoorAnimation {
-    animation_type: DoorAnimationType,
-    animation_progress: f32,
-    original_translation: Vec3,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Component)]
@@ -189,6 +176,9 @@ pub fn spawn_door(
     };
 
     let door_entity = if door.door_state == DoorState::TemporaryOpen {
+        let initial_transform = Transform::default();
+        let mut target_transform = initial_transform;
+        target_transform.translation += Vec3::X * DOOR_ANIMATION_DISTANCE;
         commands
             .spawn((
                 DoorBundle::new(
@@ -198,10 +188,13 @@ pub fn spawn_door(
                     door_collider,
                     door,
                 ),
-                DoorAnimation {
-                    animation_type: DoorAnimationType::Open,
-                    animation_progress: 0.0,
-                    original_translation: Vec3::default(),
+                Animation {
+                    animate_forward: true,
+                    animate_backward: false,
+                    animation_speed: DOOR_ANIMATION_SPEED,
+                    progress: 0.0,
+                    initial_transform,
+                    target_transform,
                 },
             ))
             .with_children(|builder| {
@@ -371,14 +364,18 @@ fn door_use(
                             level_start_events.send(LevelStarted);
 
                             door.door_state = DoorState::Locked;
-                            commands
-                                .get_entity(door_entity)
-                                .unwrap()
-                                .insert(DoorAnimation {
-                                    animation_type: DoorAnimationType::Close,
-                                    animation_progress: 0.0,
-                                    original_translation: door_transform.translation,
-                                });
+
+                            let initial_transform = *door_transform;
+                            let mut target_transform = initial_transform;
+                            target_transform.translation -= Vec3::X * DOOR_ANIMATION_DISTANCE;
+                            commands.get_entity(door_entity).unwrap().insert(Animation {
+                                animate_forward: true,
+                                animate_backward: false,
+                                animation_speed: DOOR_ANIMATION_SPEED,
+                                progress: 0.0,
+                                initial_transform,
+                                target_transform,
+                            });
                         }
                     }
                 };
@@ -388,14 +385,17 @@ fn door_use(
 
                 level_switch_events.send(LevelSwitch { exit_door: *door });
 
-                commands
-                    .get_entity(door_entity)
-                    .unwrap()
-                    .insert(DoorAnimation {
-                        animation_type: DoorAnimationType::Open,
-                        animation_progress: 0.0,
-                        original_translation: door_transform.translation,
-                    });
+                let initial_transform = *door_transform;
+                let mut target_transform = initial_transform;
+                target_transform.translation += Vec3::X * DOOR_ANIMATION_DISTANCE;
+                commands.get_entity(door_entity).unwrap().insert(Animation {
+                    animate_forward: true,
+                    animate_backward: false,
+                    animation_speed: DOOR_ANIMATION_SPEED,
+                    progress: 0.0,
+                    initial_transform,
+                    target_transform,
+                });
             }
             DoorState::Used => {
                 match collision_event {
@@ -417,49 +417,22 @@ fn door_use(
                             }
                         };
                         if player_went_though {
-                            commands
-                                .get_entity(door_entity)
-                                .unwrap()
-                                .insert(DoorAnimation {
-                                    animation_type: DoorAnimationType::Close,
-                                    animation_progress: 0.0,
-                                    original_translation: door_transform.translation,
-                                });
+                            let initial_transform = *door_transform;
+                            let mut target_transform = initial_transform;
+                            target_transform.translation -= Vec3::X * DOOR_ANIMATION_DISTANCE;
+                            commands.get_entity(door_entity).unwrap().insert(Animation {
+                                animate_forward: true,
+                                animate_backward: false,
+                                animation_speed: DOOR_ANIMATION_SPEED,
+                                progress: 0.0,
+                                initial_transform,
+                                target_transform,
+                            });
                         }
                     }
                 }
             }
             DoorState::Locked => {}
-        }
-    }
-}
-
-fn animate_door(
-    time: Res<Time>,
-    mut commands: Commands,
-    mut animated_doors: Query<(Entity, &mut DoorAnimation, &mut Transform)>,
-) {
-    for (door_entity, mut animation, mut transform) in animated_doors.iter_mut() {
-        let target_translation = match animation.animation_type {
-            DoorAnimationType::Open => {
-                animation.original_translation + Vec3::X * DOOR_ANIMATION_DISTANCE
-            }
-            DoorAnimationType::Close => {
-                animation.original_translation - Vec3::X * DOOR_ANIMATION_DISTANCE
-            }
-        };
-
-        animation.animation_progress += time.delta_seconds() * DOOR_ANIMATION_SPEED;
-
-        transform.translation = animation
-            .original_translation
-            .lerp(target_translation, animation.animation_progress);
-
-        if 1.0 <= animation.animation_progress {
-            commands
-                .get_entity(door_entity)
-                .unwrap()
-                .remove::<DoorAnimation>();
         }
     }
 }
