@@ -108,6 +108,45 @@ pub struct PlayerWeapon {
     pub bounce_amplitude: f32,
 }
 
+#[derive(Bundle)]
+struct PlayerThrownWeapon {
+    transform: Transform,
+    collider: Collider,
+    collision_groups: CollisionGroups,
+    active_events: ActiveEvents,
+    rigid_body: RigidBody,
+    velocity: Velocity,
+    damage: Damage,
+}
+
+impl PlayerThrownWeapon {
+    fn new(
+        weapon_global_transform: &GlobalTransform,
+        camera_global_transform: &GlobalTransform,
+    ) -> Self {
+        Self {
+            transform: Transform::from_translation(
+                weapon_global_transform.translation()
+                    + camera_global_transform.forward() * PLAYER_THROW_OFFSET_SCALE,
+            ),
+            collider: Collider::cuboid(0.6, 2.6, 0.3),
+            collision_groups: CollisionGroups::new(
+                COLLISION_GROUP_PROJECTILES,
+                COLLISION_GROUP_LEVEL | COLLISION_GROUP_ENEMY,
+            ),
+            active_events: ActiveEvents::COLLISION_EVENTS,
+            rigid_body: RigidBody::Dynamic,
+            velocity: Velocity {
+                linvel: camera_global_transform.forward() * PLAYER_THROW_STRENGTH,
+                ..default()
+            },
+            damage: Damage {
+                damage: PLAYER_THROW_DAMAGE,
+            },
+        }
+    }
+}
+
 pub fn spawn_player(
     ui_resources: &UiResources,
     player_resources: &PlayerResources,
@@ -423,26 +462,9 @@ fn player_throw_weapon(
             .get_entity(weapon)
             .unwrap()
             .remove::<PlayerWeapon>()
-            .insert((
-                Transform::from_translation(
-                    weapon_global_transform.translation()
-                        + camera_global_transform.forward() * PLAYER_THROW_OFFSET_SCALE,
-                )
-                .with_rotation(Quat::from_rotation_x(std::f32::consts::FRAC_PI_2)),
-                Collider::cuboid(0.6, 2.6, 0.3),
-                CollisionGroups::new(
-                    COLLISION_GROUP_PROJECTILES,
-                    COLLISION_GROUP_LEVEL | COLLISION_GROUP_ENEMY,
-                ),
-                ActiveEvents::COLLISION_EVENTS,
-                RigidBody::Dynamic,
-                Velocity {
-                    linvel: camera_global_transform.forward() * PLAYER_THROW_STRENGTH,
-                    ..default()
-                },
-                Damage {
-                    damage: PLAYER_THROW_DAMAGE,
-                },
+            .insert(PlayerThrownWeapon::new(
+                weapon_global_transform,
+                camera_global_transform,
             ));
     }
 }
