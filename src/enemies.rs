@@ -512,7 +512,6 @@ fn spawn_parts(
 fn enemy_die(
     enemy_resources: Res<EnemyResources>,
     enemies: Query<(Entity, &Transform, &Enemy), Without<EnemyWeapon>>,
-    mut weapons: Query<(Entity, &mut Transform), With<EnemyWeapon>>,
     mut commands: Commands,
     mut kill_events: EventReader<KillEvent>,
 ) {
@@ -589,18 +588,19 @@ fn enemy_die(
 
             // drop weapon
             if let Some(attached_weapon) = enemy.attached_weapon {
-                if let Ok((weapon, mut weapon_transform)) = weapons.get_mut(attached_weapon) {
-                    commands
-                        .get_entity(enemy_entity)
-                        .unwrap()
-                        .remove_children(&[weapon]);
-                    *weapon_transform = *enemy_transform;
-                    commands
-                        .get_entity(weapon)
-                        .unwrap()
-                        .remove::<EnemyWeapon>()
-                        .insert(FloatingObjectBundle::new(enemy_transform.translation));
-                }
+                commands
+                    .get_entity(enemy_entity)
+                    .unwrap()
+                    .remove_children(&[attached_weapon]);
+
+                commands
+                    .get_entity(attached_weapon)
+                    .unwrap()
+                    .remove::<EnemyWeapon>();
+
+                commands
+                    .spawn(FloatingObjectBundle::new(enemy_transform.translation))
+                    .add_child(attached_weapon);
             }
 
             commands
