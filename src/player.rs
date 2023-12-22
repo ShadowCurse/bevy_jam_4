@@ -255,7 +255,6 @@ pub fn spawn_player(
         })
         .id();
 
-    println!("player id: {id:?}");
     commands.entity(id).log_components();
 }
 
